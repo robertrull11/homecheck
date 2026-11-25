@@ -4,8 +4,9 @@ import { LanguageSelect } from '../components/LanguageSelect.jsx';
 import { Backdrop } from './LoginScreen.jsx';
 import { memberNameFor } from '../data.jsx';
 import { members } from '../config.js';
+import { InstallButton } from '../components/InstallButton.jsx';
 
-// Pantalla que aparece al entrar: elegir entre el Hogar (turquesa) y el espacio personal (naranja).
+// Pantalla que aparece al entrar: elegir entre el Hogar (turquesa) y el espacio personal (malva).
 export function SpaceChooser({ user, onPick, onSignOut }) {
   const { t } = useI18n();
   const name = memberNameFor(user.email);
@@ -47,6 +48,7 @@ export function SpaceChooser({ user, onPick, onSignOut }) {
         </div>
 
         <p className="login-rise mt-6 max-w-[34ch] text-xs leading-relaxed text-white/65 text-balance" style={{ '--d': '.55s' }}>{t('choose.hint')}</p>
+        <div className="login-rise mt-5" style={{ '--d': '.58s' }}><InstallButton dark /></div>
         <button type="button" onClick={onSignOut} className="login-rise mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-white/70 underline-offset-4 hover:underline" style={{ '--d': '.6s' }}>
           <LuLogOut size={14} /> {t('set.sign_out')}
         </button>

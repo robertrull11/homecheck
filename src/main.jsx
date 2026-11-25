@@ -1,5 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
+import './lib/install.js'; // escucha el aviso de «instalar app» desde el primer momento
 
 createRoot(document.getElementById('root')).render(<App />);
 
