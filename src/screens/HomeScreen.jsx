@@ -6,12 +6,14 @@ import { CatIcon, ProgressBar, SectionTitle, Toggle, Empty } from '../components
 import { MovementRow } from '../components/MovementRow.jsx';
 import { monthSummary, yearSummary, savingsRate, upcomingCharges, spendByCat, monthsWithData } from '../lib/finance.js';
 import { monthName, parseDate, todayStr, daysInMonth } from '../lib/dates.js';
+import { CompareView } from './CompareView.jsx';
 
 const PRORATE_KEY = 'casa-prorate';
 
 export function HomeScreen({ period, setPeriod, openMovement, goTo }) {
   const [prorate, setProrateState] = useState(() => { try { return localStorage.getItem(PRORATE_KEY) === '1'; } catch { return false; } });
   const setProrate = (v) => { setProrateState(v); try { localStorage.setItem(PRORATE_KEY, v ? '1' : '0'); } catch { /* sin almacenamiento */ } };
+  if (period.mode === 'compare') return <CompareView year={period.year} />;
   return period.mode === 'year'
     ? <YearView year={period.year} onPickMonth={(m) => setPeriod({ ...period, month: m, mode: 'month' })} />
     : <MonthView period={period} prorate={prorate} setProrate={setProrate} openMovement={openMovement} goTo={goTo} />;

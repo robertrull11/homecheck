@@ -177,10 +177,10 @@ function Main({ notify, problem, store, spaceKey, setSpaceKey }) {
   }
 
   const shift = (dir) => {
-    if (period.mode === 'year') setPeriod({ ...period, year: period.year + dir });
+    if (period.mode !== 'month') setPeriod({ ...period, year: period.year + dir });
     else { const { y, m } = addMonths(period.year, period.month, dir); setPeriod({ ...period, year: y, month: m }); }
   };
-  const isCurrent = period.year === now.y && (period.mode === 'year' || period.month === now.m);
+  const isCurrent = period.year === now.y && (period.mode !== 'month' || period.month === now.m);
   const showPeriod = tab === 'home' || tab === 'movements';
   const title = tab === 'settings' ? t('nav.settings') : t(TABS.find((x) => x.key === tab).label);
 
@@ -205,15 +205,15 @@ function Main({ notify, problem, store, spaceKey, setSpaceKey }) {
         </div>
         {showPeriod && (
           <div className="flex items-center gap-2 px-4 pb-3">
-            <Segmented className="w-[8.5rem] shrink-0" size="sm" value={period.mode} onChange={(mode) => setPeriod({ ...period, mode })}
-              options={[{ value: 'month', label: t('period.month') }, { value: 'year', label: t('period.year') }]} />
+            <Segmented className={`${tab === 'home' ? '[&_button]:px-1.5 [&_button]:text-[12px] min-[360px]:[&_button]:px-2 min-[360px]:[&_button]:text-[13px]' : 'w-[8.5rem]'} shrink-0`} size="sm" value={tab !== 'home' && period.mode === 'compare' ? 'year' : period.mode} onChange={(mode) => setPeriod({ ...period, mode })}
+              options={[{ value: 'month', label: t('period.month') }, { value: 'year', label: t('period.year') }, ...(tab === 'home' ? [{ value: 'compare', label: t('period.compare') }] : [])]} />
             <div className="flex min-w-0 flex-1 items-center justify-between rounded-[14px] border border-line bg-card p-0.5">
-              <button className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-black/5" onClick={() => shift(-1)} aria-label={t('period.prev')}><LuChevronLeft size={20} /></button>
+              <button className="flex h-9 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-black/5" onClick={() => shift(-1)} aria-label={t('period.prev')}><LuChevronLeft size={20} /></button>
               <button className="min-w-0 truncate px-1 text-sm font-bold" onClick={() => setPeriod({ year: now.y, month: now.m, mode: period.mode })} title={t('period.today')}>
-                {period.mode === 'year' ? period.year : `${monthName(locale, period.month)} ${period.year}`}
+                {period.mode === 'compare' ? <>{period.year}<span className="hidden font-normal text-muted min-[400px]:inline"> vs {period.year - 1}</span></> : period.mode === 'year' ? period.year : `${monthName(locale, period.month)} ${period.year}`}
                 {!isCurrent && <span className="ml-1.5 align-middle text-[10px] font-semibold text-[var(--accent)]">● {t('period.today')}</span>}
               </button>
-              <button className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-black/5" onClick={() => shift(1)} aria-label={t('period.next')}><LuChevronRight size={20} /></button>
+              <button className="flex h-9 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-black/5" onClick={() => shift(1)} aria-label={t('period.next')}><LuChevronRight size={20} /></button>
             </div>
           </div>
         )}
@@ -227,7 +227,7 @@ function Main({ notify, problem, store, spaceKey, setSpaceKey }) {
         {!ready ? <p className="py-20 text-center text-muted">{t('common.loading')}</p> : (
           <>
             {tab === 'home' && <HomeScreen period={period} setPeriod={setPeriod} openMovement={openMovement} goTo={goTo} />}
-            {tab === 'movements' && <MovementsScreen period={period} filter={movFilter} openMovement={openMovement} requestDelete={setToDelete} />}
+            {tab === 'movements' && <MovementsScreen period={period.mode === 'compare' ? { ...period, mode: 'year' } : period} filter={movFilter} openMovement={openMovement} requestDelete={setToDelete} />}
             {tab === 'calendar' && <CalendarScreen />}
             {tab === 'recurring' && <RecurringScreen openTemplate={(tpl) => setTplSheet({ open: true, tpl })} openNew={openNew} notify={notify} />}
             {tab === 'savings' && <SavingsScreen openGoal={(goal) => setGoalSheet({ open: true, goal })} openNew={openNew} openMovement={openMovement} goTo={goTo} />}
