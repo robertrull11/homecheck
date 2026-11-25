@@ -19,7 +19,7 @@ export const PERSONAL_INCOME = ['salary', 'bonus', 'other_income'];
 
 // Categorías personales de partida (cada uno puede renombrarlas, añadir y quitar).
 export const DEFAULT_PERSONAL = [
-  { key: CONTRIB_CATEGORY, color: '#0EA5E9', budget: 0, system: true },
+  { key: CONTRIB_CATEGORY, color: '#0B7C86', budget: 0, system: true },
   { key: 'clothes', color: '#C23A63', budget: 80 },
   { key: 'leisure_out', color: '#9A3412', budget: 120 },
   { key: 'sport_health', color: '#3E8A2A', budget: 60 },
