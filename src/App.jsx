@@ -112,7 +112,7 @@ function Shell({ store, user }) {
   // Color de la barra del sistema (Android) según dónde estés
   useEffect(() => {
     const meta = document.querySelector('meta[name=theme-color]');
-    if (meta) meta.setAttribute('content', !chosen ? '#05262c' : spaceKey === 'me' ? '#c4520e' : '#0b7c86');
+    if (meta) meta.setAttribute('content', !chosen ? '#061b2e' : spaceKey === 'me' ? '#9333ea' : '#0ea5e9');
   }, [chosen, spaceKey]);
 
   const spaces = useMemo(() => ({
@@ -196,8 +196,8 @@ function Main({ notify, problem, store, spaceKey, setSpaceKey }) {
         </div>
         <div className="px-4 pb-2.5">
           <Segmented value={spaceKey} onChange={setSpaceKey} size="sm" options={[
-            { value: 'home', label: t('space.home'), icon: <LuHouse size={15} />, activeClass: 'bg-[#0b7c86] text-white shadow-[0_2px_6px_rgba(11,124,134,.35)]' },
-            { value: 'me', label: t('space.me', { name: memberNameFor(user.email) }), icon: spaceKey === 'me' ? <LuLock size={14} /> : <LuUser size={15} />, activeClass: 'bg-[#c4520e] text-white shadow-[0_2px_6px_rgba(196,82,14,.35)]' },
+            { value: 'home', label: t('space.home'), icon: <LuHouse size={15} />, activeClass: 'seg-home' },
+            { value: 'me', label: t('space.me', { name: memberNameFor(user.email) }), icon: spaceKey === 'me' ? <LuLock size={14} /> : <LuUser size={15} />, activeClass: 'seg-me' },
           ]} />
         </div>
         {showPeriod && (
