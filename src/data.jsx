@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { members } from './config.js';
-import { dueOccurrences } from './lib/finance.js';
+import { dueOccurrences, lastYearBudgets } from './lib/finance.js';
 import { expenseCategoriesFor, incomeCategoriesFor, SAVING_COLOR } from './lib/categories.js';
 import { linkedHomeDocs } from './lib/space.js';
 import { useI18n } from './i18n/index.jsx';
@@ -86,8 +86,15 @@ export function DataProvider({ space, user, onError, onNotice, children }) {
       const list = type === 'income' ? incomeCats : expenseCats;
       return list.find((c) => c.key === key) || { key, label: t('cat.other_income'), color: '#475569' };
     };
+    // Presupuestos del Hogar: por defecto, la media real del año anterior (si hay datos); si no, el importe puesto a mano.
+    const autoBudgets = space.kind === 'home' && (settings?.budgetMode || 'auto') === 'auto';
+    const catsForYear = (y) => {
+      if (!autoBudgets) return expenseCats;
+      const auto = lastYearBudgets(transactions || [], y);
+      return expenseCats.map((c) => (!c.system && auto[c.key] != null ? { ...c, budget: auto[c.key], autoYear: y - 1 } : c));
+    };
     return {
-      space, user, kind: space.kind, settings: settings || {},
+      space, user, kind: space.kind, settings: settings || {}, autoBudgets, catsForYear,
       ready: transactions !== null && templates !== null && goals !== null && settings !== null,
       transactions: transactions || [],
       templates: templates || [],

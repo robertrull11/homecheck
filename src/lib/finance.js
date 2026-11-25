@@ -198,3 +198,30 @@ export function monthFixedStatus(templates, transactions, y, m, today = todayStr
   }
   return items.sort((a, b) => a.date.localeCompare(b.date));
 }
+
+// ── Comparación con el año anterior y presupuesto automático ──
+// Gasto por categoría de un año entre dos meses (incluidos).
+export function spendByCat(transactions, y, fromMonth = 1, toMonth = 12) {
+  const out = {};
+  for (const t of transactions) {
+    if (t.type !== 'expense' || t.year !== y || t.month < fromMonth || t.month > toMonth) continue;
+    out[t.category] = (out[t.category] || 0) + t.amount;
+  }
+  return mapRound(out);
+}
+
+// Meses de un año que tienen algún movimiento apuntado (para no comparar con meses sin datos).
+export function monthsWithData(transactions, y) {
+  const s = new Set();
+  for (const t of transactions) if (t.year === y) s.add(t.month);
+  return s;
+}
+
+// Presupuesto mensual = media real del año anterior (redondeada a 5 €), solo en las categorías con gasto ese año.
+// Se divide entre los meses del año anterior que tienen datos, no entre 12, por si se empezó a apuntar a mitad de año.
+export function lastYearBudgets(transactions, y) {
+  const months = monthsWithData(transactions, y - 1).size;
+  if (!months) return {};
+  const byCat = spendByCat(transactions, y - 1);
+  return Object.fromEntries(Object.entries(byCat).filter(([, v]) => v > 0).map(([k, v]) => [k, Math.max(5, Math.round(v / months / 5) * 5)]));
+}
