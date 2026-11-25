@@ -10,9 +10,11 @@ export const HOME_EXPENSE = [
   { key: 'food', color: '#3E8A2A' },
   { key: 'transport', color: '#B25E0E' },
   { key: 'leisure', color: '#C23A63' },
+  { key: 'education', color: '#7246D9' },
+  { key: 'insurance', color: '#57534E' },
   { key: 'unexpected', color: '#8A6A00' },
 ];
-export const DEFAULT_HOME_BUDGETS = { housing: 900, food: 500, transport: 200, leisure: 300, unexpected: 100 };
+export const DEFAULT_HOME_BUDGETS = { housing: 900, food: 500, transport: 200, leisure: 300, education: 670, insurance: 460, unexpected: 100 };
 
 export const HOME_INCOME = [CONTRIB_INCOME, 'salary', 'bonus', 'other_income'];
 export const PERSONAL_INCOME = ['salary', 'bonus', 'other_income'];
