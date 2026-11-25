@@ -14,7 +14,7 @@ export const calendarTranslations = {
     'cal.day_total': 'Total del día',
     'cal.empty': 'No hay cargos previstos. Añade tus fijos o importa extractos: la app detecta sola los recibos que se repiten.',
     'cal.past_year': 'Este año ya ha pasado: en el calendario ves lo que se pagó cada día.',
-    'cal.hint': 'Los fijos salen con su fecha e importe. Los «estimados» los calcula la app con los recibos que se repiten cada mes o cada pocos meses: el día habitual y el importe de los últimos meses. Los pagos anuales (como un seguro de julio) añídelos como fijos para verlos aquí.',
+    'cal.hint': 'Los fijos salen con su fecha e importe. Los «estimados» los calcula la app con los recibos que se repiten cada mes o cada pocos meses: el día habitual y el importe de los últimos meses. Los pagos anuales (como un seguro de julio) añádelos como fijos para verlos aquí.',
   },
   ca: {
     'nav.calendar': 'Calendari',
