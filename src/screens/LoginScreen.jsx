@@ -16,12 +16,14 @@ const ERROR_KEYS = {
   idle: 'err.idle',
 };
 
+export const CHOSEN_KEY = 'casa-space-chosen';
+
 const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 const saveData = () => typeof navigator !== 'undefined' && navigator.connection?.saveData;
 
 // Fondo: vídeo en bucle (design/login-bg → scripts/render-login-bg.mjs). Si el usuario pide menos
 // movimiento o ahorro de datos, se queda la imagen fija.
-function Backdrop() {
+export function Backdrop() {
   const [still] = useState(() => reducedMotion() || saveData());
   const ref = useRef(null);
   useEffect(() => { ref.current?.play?.().catch(() => { /* iOS en modo ahorro: queda el póster */ }); }, []);
@@ -44,6 +46,7 @@ export function LoginScreen({ store, externalError }) {
   const [error, setError] = useState(null);
   const [info, setInfo] = useState(null);
   const demo = store.mode === 'demo';
+  useEffect(() => { try { sessionStorage.removeItem(CHOSEN_KEY); } catch { /* sin almacenamiento */ } }, []);
 
   async function submit(e) {
     e.preventDefault();

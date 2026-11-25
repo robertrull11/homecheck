@@ -1,9 +1,10 @@
 import { createContext, useContext, useMemo, useState, useEffect } from 'react';
 import { translations as base, LANGUAGES } from './translations.js';
 import { extraTranslations } from './translations2.js';
+import { chooserTranslations } from './translations3.js';
 import { currency } from '../config.js';
 
-const translations = Object.fromEntries(Object.entries(base).map(([k, v]) => [k, { ...v, ...extraTranslations[k] }]));
+const translations = Object.fromEntries(Object.entries(base).map(([k, v]) => [k, { ...v, ...extraTranslations[k], ...chooserTranslations[k] }]));
 
 const I18nContext = createContext(null);
 const STORAGE_KEY = 'casa-lang';

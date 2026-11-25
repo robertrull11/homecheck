@@ -36,7 +36,7 @@ function Hero({ title, income, expense, saving, free, pace }) {
             {pace.day && <span>{t('home.day_of', { day: pace.day, days: pace.days })}</span>}
           </div>
           <div className="relative h-2.5 rounded-full bg-white/25">
-            <div className="h-2.5 rounded-full bg-[#9FF0F2]" style={{ width: `${Math.min(100, pace.spentPct)}%` }} />
+            <div className="h-2.5 rounded-full bg-[var(--accent-bar)]" style={{ width: `${Math.min(100, pace.spentPct)}%` }} />
             {pace.day && <div className="absolute -top-1 h-[18px] w-0.5 bg-white" style={{ left: `${pace.dayPct}%` }} />}
           </div>
           {pace.day && <p className="mt-2 text-xs opacity-90">{pace.message}</p>}

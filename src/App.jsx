@@ -7,7 +7,8 @@ import { createDemoStore } from './lib/demoStore.js';
 import { makeSpace, homeBase, personalBase } from './lib/space.js';
 import { deleteMovement } from './lib/actions.js';
 import { touchActivity, isExpired } from './lib/autolock.js';
-import { LoginScreen } from './screens/LoginScreen.jsx';
+import { LoginScreen, CHOSEN_KEY } from './screens/LoginScreen.jsx';
+import { SpaceChooser } from './screens/SpaceChooser.jsx';
 import { HomeScreen } from './screens/HomeScreen.jsx';
 import { MovementsScreen } from './screens/MovementsScreen.jsx';
 import { RecurringScreen } from './screens/RecurringScreen.jsx';
@@ -103,8 +104,16 @@ function Shell({ store, user }) {
   const [toast, setToast] = useState(null);
   const [problem, setProblem] = useState(null);
   const [spaceKey, setSpaceKeyState] = useState(() => { try { return localStorage.getItem(SPACE_KEY) === 'me' ? 'me' : 'home'; } catch { return 'home'; } });
+  const [chosen, setChosen] = useState(() => { try { return sessionStorage.getItem(CHOSEN_KEY) === '1'; } catch { return false; } });
   const timer = useRef(null);
   const setSpaceKey = (k) => { setSpaceKeyState(k); setProblem(null); try { localStorage.setItem(SPACE_KEY, k); } catch { /* sin almacenamiento */ } };
+  const pick = (k) => { setSpaceKey(k); setChosen(true); try { sessionStorage.setItem(CHOSEN_KEY, '1'); } catch { /* sin almacenamiento */ } window.scrollTo(0, 0); };
+
+  // Color de la barra del sistema (Android) según dónde estés
+  useEffect(() => {
+    const meta = document.querySelector('meta[name=theme-color]');
+    if (meta) meta.setAttribute('content', !chosen ? '#05262c' : spaceKey === 'me' ? '#c4520e' : '#0b7c86');
+  }, [chosen, spaceKey]);
 
   const spaces = useMemo(() => ({
     home: makeSpace(store, 'home', homeBase()),
@@ -120,6 +129,8 @@ function Shell({ store, user }) {
     console.error(e);
     setProblem(e?.code === 'permission-denied' ? 'err.permission' : 'common.error');
   }, []);
+
+  if (!chosen) return <SpaceChooser user={user} onPick={pick} onSignOut={() => store.signOut()} />;
 
   return (
     <div className={spaceKey === 'me' ? 'space-personal min-h-full' : 'min-h-full'}>
@@ -185,8 +196,8 @@ function Main({ notify, problem, store, spaceKey, setSpaceKey }) {
         </div>
         <div className="px-4 pb-2.5">
           <Segmented value={spaceKey} onChange={setSpaceKey} size="sm" options={[
-            { value: 'home', label: t('space.home'), icon: <LuHouse size={15} /> },
-            { value: 'me', label: t('space.me', { name: memberNameFor(user.email) }), icon: spaceKey === 'me' ? <LuLock size={14} /> : <LuUser size={15} /> },
+            { value: 'home', label: t('space.home'), icon: <LuHouse size={15} />, activeClass: 'bg-[#0b7c86] text-white shadow-[0_2px_6px_rgba(11,124,134,.35)]' },
+            { value: 'me', label: t('space.me', { name: memberNameFor(user.email) }), icon: spaceKey === 'me' ? <LuLock size={14} /> : <LuUser size={15} />, activeClass: 'bg-[#c4520e] text-white shadow-[0_2px_6px_rgba(196,82,14,.35)]' },
           ]} />
         </div>
         {showPeriod && (
@@ -225,7 +236,7 @@ function Main({ notify, problem, store, spaceKey, setSpaceKey }) {
         <div className="mx-auto flex max-w-lg items-start justify-around px-2 pt-2 pb-2">
           {TABS.map(({ key, icon: Icon, label }) => key === 'add' ? (
             <button key={key} onClick={() => openNew()} aria-label={t(label)}
-              className="-mt-6 flex h-[58px] w-[58px] items-center justify-center rounded-[20px] bg-[var(--accent)] text-white shadow-[0_8px_18px_rgba(11,124,134,.35)] active:scale-95">
+              className="-mt-6 flex h-[58px] w-[58px] items-center justify-center rounded-[20px] bg-[var(--accent)] text-white shadow-[0_8px_18px_var(--accent-glow)] active:scale-95">
               <Icon size={28} strokeWidth={2.4} />
             </button>
           ) : (
