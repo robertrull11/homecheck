@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { LuLayoutDashboard, LuList, LuPlus, LuRepeat, LuPiggyBank, LuSettings, LuChevronLeft, LuChevronRight, LuWifiOff, LuTriangleAlert, LuHouse, LuUser, LuLock } from 'react-icons/lu';
+import { LuLayoutDashboard, LuList, LuPlus, LuRepeat, LuPiggyBank, LuSettings, LuChevronLeft, LuChevronRight, LuWifiOff, LuTriangleAlert, LuHouse, LuUser, LuLock, LuCalendarDays } from 'react-icons/lu';
 import { I18nProvider, useI18n } from './i18n/index.jsx';
 import { DataProvider, useData, memberNameFor } from './data.jsx';
 import { firebaseConfig, members } from './config.js';
@@ -14,6 +14,7 @@ import { MovementsScreen } from './screens/MovementsScreen.jsx';
 import { RecurringScreen } from './screens/RecurringScreen.jsx';
 import { SavingsScreen } from './screens/SavingsScreen.jsx';
 import { SettingsScreen } from './screens/SettingsScreen.jsx';
+import { CalendarScreen } from './screens/CalendarScreen.jsx';
 import { MovementSheet } from './components/MovementSheet.jsx';
 import { TemplateSheet } from './components/TemplateSheet.jsx';
 import { GoalSheet } from './components/GoalSheet.jsx';
@@ -94,6 +95,7 @@ const TABS = [
   { key: 'home', icon: LuLayoutDashboard, label: 'nav.home' },
   { key: 'movements', icon: LuList, label: 'nav.movements' },
   { key: 'add', icon: LuPlus, label: 'nav.add' },
+  { key: 'calendar', icon: LuCalendarDays, label: 'nav.calendar' },
   { key: 'recurring', icon: LuRepeat, label: 'nav.recurring' },
   { key: 'savings', icon: LuPiggyBank, label: 'nav.savings' },
 ];
@@ -226,6 +228,7 @@ function Main({ notify, problem, store, spaceKey, setSpaceKey }) {
           <>
             {tab === 'home' && <HomeScreen period={period} setPeriod={setPeriod} openMovement={openMovement} goTo={goTo} />}
             {tab === 'movements' && <MovementsScreen period={period} filter={movFilter} openMovement={openMovement} requestDelete={setToDelete} />}
+            {tab === 'calendar' && <CalendarScreen />}
             {tab === 'recurring' && <RecurringScreen openTemplate={(tpl) => setTplSheet({ open: true, tpl })} openNew={openNew} notify={notify} />}
             {tab === 'savings' && <SavingsScreen openGoal={(goal) => setGoalSheet({ open: true, goal })} openNew={openNew} openMovement={openMovement} goTo={goTo} />}
             {tab === 'settings' && <SettingsScreen period={period} notify={notify} store={store} />}
@@ -234,17 +237,17 @@ function Main({ notify, problem, store, spaceKey, setSpaceKey }) {
       </main>
 
       <nav className="safe-bottom fixed inset-x-0 bottom-0 z-30 border-t border-line bg-card/95 backdrop-blur">
-        <div className="mx-auto flex max-w-lg items-start justify-around px-2 pt-2 pb-2">
+        <div className="mx-auto flex max-w-lg items-start justify-around px-1 pt-2 pb-2">
           {TABS.map(({ key, icon: Icon, label }) => key === 'add' ? (
             <button key={key} onClick={() => openNew()} aria-label={t(label)}
-              className="-mt-6 flex h-[58px] w-[58px] items-center justify-center rounded-[20px] bg-[var(--accent)] text-white shadow-[0_8px_18px_var(--accent-glow)] active:scale-95">
+              className="-mt-6 flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-[20px] bg-[var(--accent)] text-white shadow-[0_8px_18px_var(--accent-glow)] active:scale-95">
               <Icon size={28} strokeWidth={2.4} />
             </button>
           ) : (
             <button key={key} onClick={() => goTo(key)}
-              className={`flex min-w-[58px] flex-col items-center gap-0.5 rounded-xl px-1.5 py-0.5 text-[11px] font-semibold ${tab === key ? 'text-[var(--accent)]' : 'text-muted'}`}>
+              className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl px-0 py-0.5 text-[10px] font-semibold tracking-tight min-[400px]:text-[10.5px] ${tab === key ? 'text-[var(--accent)]' : 'text-muted'}`}>
               <Icon size={22} />
-              <span>{t(label)}</span>
+              <span className="max-w-full truncate">{t(label)}</span>
             </button>
           ))}
         </div>
