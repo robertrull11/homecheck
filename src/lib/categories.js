@@ -3,14 +3,14 @@
 // Personal: categorías editables por cada persona (nombre, color y presupuesto), guardadas en sus ajustes.
 import { CONTRIB_CATEGORY, CONTRIB_INCOME } from './space.js';
 
-export const PALETTE = ['#4655C9', '#3E8A2A', '#B25E0E', '#C23A63', '#7246D9', '#0E7490', '#8A6A00', '#475569'];
+export const PALETTE = ['#4655C9', '#3E8A2A', '#B25E0E', '#C23A63', '#8A6A00', '#9A3412', '#57534E', '#475569'];
 
 export const HOME_EXPENSE = [
   { key: 'housing', color: '#4655C9' },
   { key: 'food', color: '#3E8A2A' },
   { key: 'transport', color: '#B25E0E' },
   { key: 'leisure', color: '#C23A63' },
-  { key: 'unexpected', color: '#7246D9' },
+  { key: 'unexpected', color: '#8A6A00' },
 ];
 export const DEFAULT_HOME_BUDGETS = { housing: 900, food: 500, transport: 200, leisure: 300, unexpected: 100 };
 
@@ -19,11 +19,11 @@ export const PERSONAL_INCOME = ['salary', 'bonus', 'other_income'];
 
 // Categorías personales de partida (cada uno puede renombrarlas, añadir y quitar).
 export const DEFAULT_PERSONAL = [
-  { key: CONTRIB_CATEGORY, color: '#0B7C86', budget: 0, system: true },
+  { key: CONTRIB_CATEGORY, color: '#0EA5E9', budget: 0, system: true },
   { key: 'clothes', color: '#C23A63', budget: 80 },
-  { key: 'leisure_out', color: '#8A6A00', budget: 120 },
+  { key: 'leisure_out', color: '#9A3412', budget: 120 },
   { key: 'sport_health', color: '#3E8A2A', budget: 60 },
-  { key: 'gifts', color: '#7246D9', budget: 50 },
+  { key: 'gifts', color: '#B25E0E', budget: 50 },
   { key: 'transport_p', color: '#4655C9', budget: 60 },
   { key: 'other_p', color: '#475569', budget: 50 },
 ];
