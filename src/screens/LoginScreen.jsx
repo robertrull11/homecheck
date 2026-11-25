@@ -13,6 +13,7 @@ const ERROR_KEYS = {
   'auth/invalid-email': 'err.invalid_email',
   'auth/missing-email': 'err.invalid_email',
   'not-member': 'err.not_member',
+  idle: 'err.idle',
 };
 
 export function LoginScreen({ store, externalError }) {
@@ -42,9 +43,9 @@ export function LoginScreen({ store, externalError }) {
     catch (err) { setError(ERROR_KEYS[err?.code] || 'common.error'); }
   }
 
-  async function enterDemo() {
+  async function enterDemo(who) {
     setBusy(true);
-    try { await store.signIn('robert@ejemplo.com'); } finally { setBusy(false); }
+    try { await store.signIn(who); } finally { setBusy(false); }
   }
 
   const shownError = error || (externalError ? ERROR_KEYS[externalError] || 'common.error' : null);
@@ -56,13 +57,17 @@ export function LoginScreen({ store, externalError }) {
       </div>
       <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-6 pb-16">
         <img src="./icons/icon-192.png" alt="" className="mb-5 h-16 w-16 rounded-2xl shadow-sm" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-        <h1 className="text-3xl font-extrabold tracking-tight">{t('app.title')}</h1>
+        <h1 className="font-display text-3xl font-bold tracking-tight">{t('app.title')}</h1>
         <p className="mt-2 text-muted">{t('login.subtitle')}</p>
 
         {demo ? (
           <div className="mt-8">
-            <button className="btn btn-primary w-full py-3.5 text-base" onClick={enterDemo} disabled={busy}>
-              <LuSparkles size={18} /> {t('login.demo_button')}
+            {shownError && <p className="mb-3 rounded-2xl bg-danger-soft px-3 py-2.5 text-sm text-danger" role="alert">{t(shownError)}</p>}
+            <button className="btn btn-primary w-full py-3.5 text-base" onClick={() => enterDemo('robert@ejemplo.com')} disabled={busy}>
+              <LuSparkles size={18} /> {t('login.demo_as', { name: 'Robert' })}
+            </button>
+            <button className="btn btn-ghost mt-2 w-full py-3.5 text-base" onClick={() => enterDemo('arantxa@ejemplo.com')} disabled={busy}>
+              {t('login.demo_as', { name: 'Arantxa' })}
             </button>
             <p className="mt-3 text-center text-xs leading-relaxed text-muted">{t('login.demo_note')}</p>
           </div>
@@ -87,12 +92,12 @@ export function LoginScreen({ store, externalError }) {
                 </button>
               </div>
             </div>
-            {shownError && <p className="rounded-xl bg-danger-soft px-3 py-2.5 text-sm text-danger" role="alert">{t(shownError)}</p>}
-            {info && <p className="rounded-xl bg-brand-soft px-3 py-2.5 text-sm text-brand">{t(info)}</p>}
+            {shownError && <p className="rounded-2xl bg-danger-soft px-3 py-2.5 text-sm text-danger" role="alert">{t(shownError)}</p>}
+            {info && <p className="rounded-2xl bg-[var(--accent-soft)] px-3 py-2.5 text-sm text-[var(--accent-dark)]">{t(info)}</p>}
             <button type="submit" className="btn btn-primary w-full py-3.5 text-base" disabled={busy}>
               {busy ? t('login.signing_in') : t('login.sign_in')}
             </button>
-            <button type="button" onClick={forgot} className="w-full py-1 text-sm font-medium text-brand">{t('login.forgot')}</button>
+            <button type="button" onClick={forgot} className="w-full py-1 text-sm font-medium text-[var(--accent)]">{t('login.forgot')}</button>
             <p className="pt-2 text-center text-xs text-muted">{t('login.private')}</p>
           </form>
         )}
