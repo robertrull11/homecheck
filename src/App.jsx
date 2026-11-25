@@ -109,10 +109,11 @@ function Shell({ store, user }) {
   const setSpaceKey = (k) => { setSpaceKeyState(k); setProblem(null); try { localStorage.setItem(SPACE_KEY, k); } catch { /* sin almacenamiento */ } };
   const pick = (k) => { setSpaceKey(k); setChosen(true); try { sessionStorage.setItem(CHOSEN_KEY, '1'); } catch { /* sin almacenamiento */ } window.scrollTo(0, 0); };
 
-  // Color de la barra del sistema (Android) según dónde estés
+  // Color de la barra del sistema (Android) según dónde estés; los colores salen de styles.css
   useEffect(() => {
     const meta = document.querySelector('meta[name=theme-color]');
-    if (meta) meta.setAttribute('content', !chosen ? '#061b2e' : spaceKey === 'me' ? '#9333ea' : '#0ea5e9');
+    const v = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    if (meta) meta.setAttribute('content', v(!chosen ? '--stage' : spaceKey === 'me' ? '--me' : '--home'));
   }, [chosen, spaceKey]);
 
   const spaces = useMemo(() => ({

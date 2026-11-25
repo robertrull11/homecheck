@@ -7,7 +7,7 @@ import { useI18n } from './i18n/index.jsx';
 
 const DataContext = createContext(null);
 const DEMO_EMAILS = ['robert@ejemplo.com', 'arantxa@ejemplo.com'];
-const MEMBER_STYLES = [{ bg: '#0369A1', fg: '#FFFFFF' }, { bg: '#F2A541', fg: '#3A2604' }];
+const MEMBER_STYLES = [{ bg: '#0B7C86', fg: '#FFFFFF' }, { bg: '#F2A541', fg: '#3A2604' }];
 
 function memberIndex(email = '') {
   const e = email.toLowerCase();
