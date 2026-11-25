@@ -185,6 +185,51 @@ export async function readStatement(file) {
   return null;
 }
 
+// Varios extractos a la vez (p. ej. todo el año): se leen uno a uno y se juntan en una sola lista.
+export async function readStatements(files) {
+  const parsed = [];
+  const unknown = [];
+  let failed = 0;
+  for (const f of files) {
+    let res = null;
+    try { res = await readStatement(f); } catch (e) { console.error(e); failed++; }
+    if (!res) { unknown.push(f.name); continue; }
+    // Cada movimiento lleva su año (en el extracto mensual se deduce de la fecha del extracto)
+    const sm = res.statement?.m ?? 12;
+    const sy = res.year;
+    res.lines = res.lines.map((l) => (l.y != null ? l : { ...l, y: l.month > sm ? sy - 1 : sy }));
+    parsed.push(res);
+  }
+  if (!parsed.length) {
+    if (failed === files.length) throw new Error('No se ha podido leer ningún archivo');
+    return { merged: null, unknown };
+  }
+  const key = (p) => (p.statement ? p.statement.y * 10000 + p.statement.m * 100 + p.statement.d : 0);
+  parsed.sort((a, b) => key(a) - key(b));
+  // El mismo extracto elegido dos veces se cuenta una sola vez
+  const seen = new Set();
+  const list = parsed.filter((p) => { const k = `${key(p)}|${p.opening}|${p.closing}|${p.lines.length}`; if (seen.has(k)) return false; seen.add(k); return true; });
+  let gaps = 0;
+  for (let i = 1; i < list.length; i++) if (list[i].opening != null && list[i - 1].closing != null && Math.abs(list[i].opening - list[i - 1].closing) > 0.005) gaps++;
+  const first = list[0];
+  const last = list[list.length - 1];
+  return {
+    unknown,
+    merged: {
+      bank: last.bank,
+      files: list.length,
+      first: first.statement,
+      statement: last.statement,
+      year: last.year,
+      lines: list.flatMap((p) => p.lines),
+      opening: first.opening,
+      closing: last.closing,
+      balanceChecked: list.every((p) => p.balanceChecked),
+      mismatches: list.reduce((a, p) => a + p.mismatches, 0) + gaps,
+    },
+  };
+}
+
 // Fechas reales: el año del extracto (si un movimiento es de un mes posterior al del extracto, es del año anterior)
 export function datedLines(parsed, year) {
   const stmtMonth = parsed.statement?.m ?? 12;
