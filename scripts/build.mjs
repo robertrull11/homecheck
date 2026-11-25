@@ -66,6 +66,15 @@ await fs.writeFile(path.join(dist, 'app.js'), js);
 await fs.writeFile(path.join(dist, 'app.css'), css);
 await fs.cp(path.join(root, 'public'), dist, { recursive: true });
 
+// Lector de PDF (pdf.js) para importar extractos: se descarga solo cuando se usa.
+try {
+  const pdfjsDir = path.join(root, 'node_modules', 'pdfjs-dist', 'legacy', 'build');
+  await fs.mkdir(path.join(dist, 'vendor', 'pdfjs'), { recursive: true });
+  for (const f of ['pdf.min.mjs', 'pdf.worker.min.mjs']) await fs.copyFile(path.join(pdfjsDir, f), path.join(dist, 'vendor', 'pdfjs', f));
+} catch (e) {
+  console.warn('Aviso: pdf.js no está instalado; la importación de extractos no funcionará.', e.message);
+}
+
 const html = (await fs.readFile(path.join(src, 'index.html'), 'utf8')).replaceAll('__VERSION__', version);
 await fs.writeFile(
   path.join(dist, 'index.html'),

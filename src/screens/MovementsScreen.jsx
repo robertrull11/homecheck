@@ -1,9 +1,10 @@
 import { useMemo, useState, useEffect } from 'react';
-import { LuSearch, LuList } from 'react-icons/lu';
+import { LuSearch, LuList, LuFileUp } from 'react-icons/lu';
 import { useI18n } from '../i18n/index.jsx';
 import { useData } from '../data.jsx';
 import { MovementRow } from '../components/MovementRow.jsx';
 import { Empty, Avatar } from '../components/ui.jsx';
+import { ImportSheet } from '../components/ImportSheet.jsx';
 import { formatDayHeader, todayStr } from '../lib/dates.js';
 import { round2 } from '../lib/finance.js';
 import { members } from '../config.js';
@@ -17,6 +18,7 @@ export function MovementsScreen({ period, filter, openMovement, requestDelete })
   const [category, setCategory] = useState(filter?.category || 'all');
   const [who, setWho] = useState('all');
   const [query, setQuery] = useState('');
+  const [importing, setImporting] = useState(false);
 
   useEffect(() => { setType(filter?.type || 'all'); setCategory(filter?.category || 'all'); }, [filter]);
 
@@ -54,6 +56,9 @@ export function MovementsScreen({ period, filter, openMovement, requestDelete })
 
   return (
     <div>
+      <button className="btn btn-ghost mb-3 w-full py-2.5 text-sm" onClick={() => setImporting(true)}>
+        <LuFileUp size={17} className="text-[var(--accent)]" /> {t('imp.button')}
+      </button>
       <div className="relative">
         <LuSearch className="absolute top-1/2 left-3.5 -translate-y-1/2 text-muted" size={18} />
         <input type="search" aria-label={t('common.search')} className="field pl-10" placeholder={t('mov.search_placeholder')} value={query} onChange={(e) => setQuery(e.target.value)} />
@@ -98,6 +103,7 @@ export function MovementsScreen({ period, filter, openMovement, requestDelete })
           {gi === 0 && <p className="mt-1.5 px-1 text-[11px] text-muted">{t('mov.swipe_hint')}</p>}
         </div>
       ))}
+      <ImportSheet open={importing} onClose={() => setImporting(false)} />
     </div>
   );
 }

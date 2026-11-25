@@ -9,6 +9,7 @@
     "login-bg": "node scripts/render-login-bg.mjs"
   },
   "dependencies": {
+    "pdfjs-dist": "6.2.108",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-icons": "^5.7.0"
