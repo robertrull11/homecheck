@@ -1,6 +1,6 @@
 // Exporta movimientos a un CSV que Excel abre bien (con BOM y separador según idioma).
 
-export function exportCsv({ transactions, goals, t, lang, memberName, year }) {
+export function exportCsv({ transactions, t, lang, memberName, year, categoryOf }) {
   const rows = transactions
     .filter((tx) => year == null || tx.year === year)
     .sort((a, b) => a.date.localeCompare(b.date));
@@ -10,10 +10,7 @@ export function exportCsv({ transactions, goals, t, lang, memberName, year }) {
     const s = String(v ?? '');
     return /["\n\r;,]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
-  const catLabel = (tx) => {
-    if (tx.type === 'saving') return goals.find((g) => g.id === tx.category)?.name || '';
-    return t(`cat.${tx.category}`);
-  };
+  const catLabel = (tx) => categoryOf(tx.type, tx.category).label;
   const header = ['csv.date', 'csv.type', 'csv.category', 'csv.concept', 'csv.amount', 'csv.frequency', 'csv.created_by', 'csv.notes'].map(t);
   const lines = [header.map(esc).join(sep)];
   for (const tx of rows) {

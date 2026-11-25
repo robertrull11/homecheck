@@ -1,15 +1,19 @@
 rules_version = '2';
-// Solo las dos personas del hogar pueden leer y escribir. Nadie más, aunque tenga cuenta.
-// Emails en minúsculas. Pendiente: añadir el de la pareja a la lista.
+// Hogar: solo las dos personas del hogar pueden leer y escribir.
+// Espacio personal (users/<uid>): solo su dueño puede leerlo y escribirlo; la pareja no.
 service cloud.firestore {
   match /databases/{database}/documents {
     function isMember() {
       return request.auth != null
-        && request.auth.token.email.lower() in ['robertrull_@hotmail.com'];
+        && request.auth.token.email.lower() in ['robertrull_@hotmail.com', 'arantxabr75_@yahoo.es'];
     }
 
     match /households/main-home/{collection}/{docId} {
       allow read, write: if isMember();
+    }
+
+    match /users/{userId}/{collection}/{docId} {
+      allow read, write: if isMember() && request.auth.uid == userId;
     }
 
     // Todo lo demás, cerrado.

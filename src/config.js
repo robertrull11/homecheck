@@ -18,8 +18,8 @@ export const firebaseConfig = {
 // Las dos personas del hogar. El nombre es el que se ve en la app.
 // Deben coincidir con los emails puestos en firestore.rules.
 export const members = [
-  { email: 'robertrull_@hotmail.com', name: 'Robert' },
-  // Pendiente: añadir el email de la pareja (y también en firestore.rules).
+  { email: 'robertrull_@hotmail.com', name: 'Robert' }, // el primero es el administrador del proyecto
+  { email: 'arantxabr75_@yahoo.es', name: 'Arantxa' },
 ];
 
 export const householdId = 'main-home';
