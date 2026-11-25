@@ -21,7 +21,7 @@ export const PERSONAL_INCOME = ['salary', 'bonus', 'other_income'];
 export const DEFAULT_PERSONAL = [
   { key: CONTRIB_CATEGORY, color: '#0B7C86', budget: 0, system: true },
   { key: 'clothes', color: '#C23A63', budget: 80 },
-  { key: 'leisure_out', color: '#B25E0E', budget: 120 },
+  { key: 'leisure_out', color: '#8A6A00', budget: 120 },
   { key: 'sport_health', color: '#3E8A2A', budget: 60 },
   { key: 'gifts', color: '#7246D9', budget: 50 },
   { key: 'transport_p', color: '#4655C9', budget: 60 },
@@ -29,7 +29,7 @@ export const DEFAULT_PERSONAL = [
 ];
 
 export const INCOME_COLOR = '#1E7A45';
-export const SAVING_COLOR = '#0B7C86';
+export const SAVING_COLOR = 'var(--accent)';
 
 export const FREQUENCIES = ['monthly', 'quarterly', 'annual'];
 export const FREQ_STEP = { monthly: 1, quarterly: 3, annual: 12 };

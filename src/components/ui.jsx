@@ -53,7 +53,7 @@ export function Segmented({ options, value, onChange, className = '', size = 'md
           type="button"
           onClick={() => onChange(o.value)}
           aria-pressed={value === o.value}
-          className={`flex flex-1 items-center justify-center gap-1.5 rounded-[10px] px-3 ${size === 'sm' ? 'py-1.5 text-[13px]' : 'py-2.5 text-sm'} font-semibold transition ${value === o.value ? 'bg-white text-[var(--accent)] shadow-[0_1px_2px_rgba(15,42,46,.12)]' : 'text-muted'}`}
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded-[10px] px-3 ${size === 'sm' ? 'py-1.5 text-[13px]' : 'py-2.5 text-sm'} font-semibold transition ${value === o.value ? (o.activeClass || 'bg-white text-[var(--accent)] shadow-[0_1px_2px_rgba(15,42,46,.12)]') : 'text-muted'}`}
         >
           {o.icon}{o.label}
         </button>

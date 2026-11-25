@@ -56,7 +56,7 @@ export function MovementSheet({ open, initial, defaults, onClose, notify }) {
   function changeType(ty) { setType(ty); setDups(null); setError(null); setCategory(firstCat(ty)); }
 
   const template = initial?.templateId ? templates.find((x) => x.id === initial.templateId) : null;
-  const cats = type === 'income' ? incomeCats : type === 'saving' ? goals.map((g) => ({ key: g.id, label: g.name, color: '#0B7C86' })) : expenseCats;
+  const cats = type === 'income' ? incomeCats : type === 'saving' ? goals.map((g) => ({ key: g.id, label: g.name, color: 'var(--accent)' })) : expenseCats;
 
   const suggestions = useMemo(() => {
     const counts = new Map();
@@ -121,7 +121,7 @@ export function MovementSheet({ open, initial, defaults, onClose, notify }) {
               <LuTrash2 size={18} />
             </button>
           )}
-          <button className="btn btn-primary h-14 flex-1 rounded-2xl text-base shadow-[0_8px_18px_rgba(11,124,134,.28)]" onClick={() => save(false)} disabled={busy}>
+          <button className="btn btn-primary h-14 flex-1 rounded-2xl text-base shadow-[0_8px_18px_var(--accent-glow)]" onClick={() => save(false)} disabled={busy}>
             <span className="tabular">{saveLabel}</span>
           </button>
         </div>
