@@ -4,6 +4,7 @@ import { useI18n } from '../i18n/index.jsx';
 import { useData } from '../data.jsx';
 import { CatIcon, SectionTitle, Confirm, Toggle } from '../components/ui.jsx';
 import { LanguageSelect } from '../components/LanguageSelect.jsx';
+import { InstallButton } from '../components/InstallButton.jsx';
 import { PALETTE } from '../lib/categories.js';
 import { parseAmount, round2, lastYearBudgets } from '../lib/finance.js';
 import { todayStr } from '../lib/dates.js';
@@ -71,6 +72,7 @@ export function SettingsScreen({ period, notify, store }) {
 
       <SectionTitle>{t('set.install')}</SectionTitle>
       <div className="card space-y-2 p-4 text-sm leading-relaxed">
+        <InstallButton className="mb-1" />
         <p className="flex gap-2"><LuSmartphone size={18} className="mt-0.5 shrink-0 text-muted" /> {t('set.install_ios')}</p>
         <p className="flex gap-2"><LuSmartphone size={18} className="mt-0.5 shrink-0 text-muted" /> {t('set.install_android')}</p>
       </div>
