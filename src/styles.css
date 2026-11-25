@@ -9,9 +9,9 @@
   --color-hair: #edf3f4;
   --color-paper: #f3f8f8;
   --color-card: #ffffff;
-  --color-brand: #0b7c86;
-  --color-brand-dark: #075a62;
-  --color-brand-soft: #e3f5f6;
+  --color-brand: #0ea5e9;
+  --color-brand-dark: #0369a1;
+  --color-brand-soft: #e0f2fe;
   --color-tint: #e1eeef;
   --color-danger: #c9372c;
   --color-danger-soft: #fbe9e7;
@@ -20,20 +20,28 @@
   --color-warn-soft: #fff5e6;
   --color-warn-line: #f5d9a8;
   --color-income: #1e7a45;
-  --color-saving: #0b7c86;
+  --color-saving: #0369a1;
 }
 
-/* Color del espacio activo: Hogar turquesa, Personal naranja (para no confundirse al apuntar) */
+/* Colores de cada espacio (se cambian solo aquí). Hogar: azul #0EA5E9. Personal: violeta #9333EA. */
 :root {
-  --accent: #0b7c86; --accent-dark: #075a62; --accent-soft: #e3f5f6;
-  --accent-bar: #9ff0f2; --accent-glow: rgba(11,124,134,.35);
+  --home: #0ea5e9; --home-dark: #0369a1; --home-soft: #e0f2fe;
+  --me: #9333ea; --me-dark: #6b21a8; --me-soft: #f3e8ff;
+  --accent: var(--home); --accent-dark: var(--home-dark); --accent-soft: var(--home-soft);
+  --accent-text: var(--home-dark); /* texto azul sobre blanco: tono oscuro para que se lea bien */
+  --accent-bar: #e0f2fe; --accent-glow: rgba(14,165,233,.35);
 }
 .space-personal {
-  --accent: #c4520e; --accent-dark: #8a3a0c; --accent-soft: #fdebdd;
-  --accent-bar: #ffd3ae; --accent-glow: rgba(196,82,14,.35);
-  --color-paper: #fbf6f2; --color-tint: #f3e7de; --color-saving: #c4520e;
+  --accent: var(--me); --accent-dark: var(--me-dark); --accent-soft: var(--me-soft);
+  --accent-text: var(--me);
+  --accent-bar: #e9d5ff; --accent-glow: rgba(147,51,234,.32);
+  --color-paper: #faf7fd; --color-tint: #eee6f8; --color-saving: #7e22ce;
   background: var(--color-paper);
 }
+/* Los textos con el color del espacio usan su variante legible */
+.text-\[var\(--accent\)\] { color: var(--accent-text); }
+.seg-home { background: var(--home); color: #fff; box-shadow: 0 2px 6px rgba(14,165,233,.35); }
+.seg-me { background: var(--me); color: #fff; box-shadow: 0 2px 6px rgba(147,51,234,.32); }
 
 @layer base {
   html, body, #root { height: 100%; }
@@ -99,11 +107,11 @@
 }
 .chooser-card:hover { transform: translateY(-3px); box-shadow: 0 28px 60px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.3); }
 .chooser-card:active { transform: scale(.98); }
-.chooser-home { --tone-ink: #075a62; background: linear-gradient(155deg, #13a3ad 0%, #0b7c86 55%, #075a62 100%); }
-.chooser-me { --tone-ink: #8a3a0c; background: linear-gradient(155deg, #f08a3c 0%, #c4520e 58%, #8a3a0c 100%); }
+.chooser-home { --tone-ink: var(--home-dark); background: linear-gradient(155deg, #38bdf8 0%, var(--home) 52%, var(--home-dark) 100%); }
+.chooser-me { --tone-ink: var(--me-dark); background: linear-gradient(155deg, #a855f7 0%, var(--me) 55%, var(--me-dark) 100%); }
 
 /* ---------- Pantalla de entrada ---------- */
-.login-stage { background: #05262c; }
+.login-stage { background: #061b2e; }
 .login-glass {
   background: linear-gradient(160deg, rgba(255,255,255,.16), rgba(255,255,255,.06));
   border: 1px solid rgba(255,255,255,.22);
@@ -112,11 +120,11 @@
 }
 .login-field {
   width: 100%; height: 3.1rem; border-radius: 1rem; outline: none; color: #fff;
-  background: rgba(3,22,26,.35); border: 1px solid rgba(255,255,255,.22);
+  background: rgba(3,17,31,.35); border: 1px solid rgba(255,255,255,.22);
   transition: border-color .15s, box-shadow .15s, background .15s;
 }
-.login-field:focus { border-color: #9ff0f2; background: rgba(3,22,26,.5); box-shadow: 0 0 0 3px rgba(159,240,242,.25); }
-.login-field:-webkit-autofill { -webkit-text-fill-color: #fff; box-shadow: 0 0 0 100px #0a3a41 inset; caret-color: #fff; }
+.login-field:focus { border-color: #7dd3fc; background: rgba(3,17,31,.5); box-shadow: 0 0 0 3px rgba(125,211,252,.25); }
+.login-field:-webkit-autofill { -webkit-text-fill-color: #fff; box-shadow: 0 0 0 100px #0b2a42 inset; caret-color: #fff; }
 .login-cta {
   color: #3b2a00; font-weight: 700;
   background: linear-gradient(100deg, #f2c14e 0%, #ffe39a 45%, #f2c14e 60%, #e9ad2f 100%);
@@ -130,7 +138,7 @@
 .login-rise { animation: login-rise .9s cubic-bezier(.2,.8,.2,1) var(--d, 0s) both, title-shine 2.2s ease-out calc(var(--d, 0s) + .5s) both; }
 .login-logo { animation: logo-pop 1s cubic-bezier(.2,1.4,.3,1) both; }
 .login-halo {
-  position: absolute; inset: -14px; border-radius: 34%; border: 2px solid rgba(159,240,242,.55);
+  position: absolute; inset: -14px; border-radius: 34%; border: 2px solid rgba(125,211,252,.6);
   animation: halo 3.2s ease-out .9s infinite;
 }
 .login-halo-2 { border-color: rgba(242,193,78,.5); animation-delay: 2.5s; }

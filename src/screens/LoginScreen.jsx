@@ -28,11 +28,11 @@ export function Backdrop() {
   const ref = useRef(null);
   useEffect(() => { ref.current?.play?.().catch(() => { /* iOS en modo ahorro: queda el póster */ }); }, []);
   return (
-    <div className="pointer-events-none fixed inset-0 -z-10 bg-[#05262c]" aria-hidden="true">
+    <div className="pointer-events-none fixed inset-0 -z-10 bg-[#061b2e]" aria-hidden="true">
       {still
         ? <img src="./media/login-bg.jpg" alt="" className="h-full w-full object-cover" />
         : <video ref={ref} className="h-full w-full object-cover" src="./media/login-bg.mp4" poster="./media/login-bg.jpg" autoPlay muted loop playsInline preload="auto" />}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(3,22,26,.72)_0%,rgba(3,22,26,.35)_55%,rgba(3,22,26,.6)_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(3,17,31,.72)_0%,rgba(3,17,31,.35)_55%,rgba(3,17,31,.6)_100%)]" />
     </div>
   );
 }
@@ -99,7 +99,7 @@ export function LoginScreen({ store, externalError }) {
           {demo ? (
             <div className="space-y-2.5">
               {alert}
-              <button className="btn w-full bg-white py-3.5 text-base text-[#075a62]" onClick={() => enterDemo('robert@ejemplo.com')} disabled={busy}>
+              <button className="btn w-full bg-white py-3.5 text-base text-[var(--home-dark)]" onClick={() => enterDemo('robert@ejemplo.com')} disabled={busy}>
                 <LuSparkles size={18} /> {t('login.demo_as', { name: 'Robert' })}
               </button>
               <button className="btn w-full border border-white/30 bg-white/10 py-3.5 text-base text-white" onClick={() => enterDemo('arantxa@ejemplo.com')} disabled={busy}>
@@ -129,7 +129,7 @@ export function LoginScreen({ store, externalError }) {
                 </div>
               </div>
               {alert}
-              {info && <p className="rounded-2xl bg-white/90 px-3 py-2.5 text-sm text-[#075a62]">{t(info)}</p>}
+              {info && <p className="rounded-2xl bg-white/90 px-3 py-2.5 text-sm text-[var(--home-dark)]">{t(info)}</p>}
               <button type="submit" className="login-cta btn w-full py-3.5 text-base" disabled={busy}>
                 {busy ? t('login.signing_in') : t('login.sign_in')}
               </button>
