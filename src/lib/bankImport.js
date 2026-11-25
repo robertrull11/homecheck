@@ -111,7 +111,70 @@ export function parseDeutscheBank(pages) {
   };
 }
 
-const PARSERS = [parseDeutscheBank];
+// ── Deutsche Bank: "EXTRACTE INTEGRAT DB" / "EXTRACTO INTEGRADO DB" (catalán o castellano) ──
+const DATE_DMY = /^(\d{2})\.(\d{2})\.(\d{2})$/;
+const SIGNED = /^(-?)(\d{1,3}(?:\.\d{3})*,\d{2})$/;
+const toSigned = (s) => { const m = s.match(SIGNED); if (!m) return null; const n = Number(m[2].replace(/\./g, '').replace(',', '.')); return m[1] ? -n : n; };
+
+export function parseDeutscheBankIntegrated(pages) {
+  const rows = pages.flatMap(rowsOf);
+  const text = rows.map((r) => r.map((c) => c.s).join(' ')).join('\n');
+  if (!/DEUTSCHE BANK|DEUTESBB/i.test(text) || !/EXTRACTE INTEGRAT|EXTRACTO INTEGRADO/i.test(text)) return null;
+
+  // Saldo anterior y actual de la cuenta (fila del IBAN en el detalle de posiciones)
+  let opening = null;
+  let closingTable = null;
+  for (const r of rows) {
+    if (r.some((c) => /^IBAN$/i.test(c.s))) {
+      const nums = r.map((c) => toSigned(c.s)).filter((n) => n != null);
+      if (nums.length >= 2) { opening = nums[0]; closingTable = nums[1]; break; }
+    }
+  }
+
+  const lines = [];
+  let lastWasMovement = false;
+  for (const r of rows) {
+    const first = r[0];
+    const d = first.s.match(DATE_DMY);
+    if (d && first.x < 110) {
+      const rest = r.slice(1);
+      const nums = rest.filter((c) => SIGNED.test(c.s));
+      const concept = rest.filter((c) => !SIGNED.test(c.s) && !DATE_DMY.test(c.s)).map((c) => c.s).join(' ').replace(/\s+/g, ' ').trim();
+      lastWasMovement = false;
+      if (!nums.length || !concept || /^SALDO|^SUMA/i.test(concept)) continue;
+      lines.push({ day: +d[1], month: +d[2], y: 2000 + +d[3], concept, amount: toSigned(nums[0].s), balance: nums.length > 1 ? toSigned(nums[nums.length - 1].s) : null });
+      lastWasMovement = true;
+    } else if (lastWasMovement && r.every((c) => c.x >= 120 && c.x < 310 && !SIGNED.test(c.s) && !DATE_DMY.test(c.s))) {
+      lines[lines.length - 1].concept += ` ${r.map((c) => c.s).join(' ')}`;
+    } else {
+      lastWasMovement = false;
+    }
+  }
+
+  let mismatches = 0;
+  let running = opening;
+  for (const l of lines) {
+    if (running != null && l.balance != null && Math.abs(round2(running + l.amount) - l.balance) > 0.005) mismatches++;
+    running = l.balance != null ? l.balance : running != null ? round2(running + l.amount) : null;
+  }
+  const closing = lines.length ? lines[lines.length - 1].balance : opening;
+  if (closingTable != null && closing != null && Math.abs(closingTable - closing) > 0.005) mismatches++;
+  const last = lines[lines.length - 1];
+
+  return {
+    bank: 'Deutsche Bank',
+    statement: last ? { d: last.day, m: last.month, y: last.y } : null,
+    year: last ? last.y : new Date().getFullYear(),
+    fixedYear: true,
+    lines,
+    opening,
+    closing,
+    balanceChecked: opening != null && lines.every((l) => l.balance != null),
+    mismatches,
+  };
+}
+
+const PARSERS = [parseDeutscheBank, parseDeutscheBankIntegrated];
 
 export async function readStatement(file) {
   const pages = await pdfToPages(file);
@@ -126,7 +189,8 @@ export async function readStatement(file) {
 export function datedLines(parsed, year) {
   const stmtMonth = parsed.statement?.m ?? 12;
   return parsed.lines.map((l) => {
-    const y = l.month > stmtMonth ? year - 1 : year;
+    // Si el extracto trae el año en cada fecha, se respeta (moviéndolo si el usuario cambia el año)
+    const y = l.y != null ? l.y + (year - parsed.year) : l.month > stmtMonth ? year - 1 : year;
     return { ...l, year: y, date: `${y}-${pad(l.month)}-${pad(l.day)}` };
   });
 }
