@@ -14,6 +14,9 @@ export function isExpired() {
   if (!min) return false;
   try {
     const last = Number(localStorage.getItem(LAST) || 0);
-    return last > 0 && Date.now() - last > min * 60 * 1000;
+    const expired = last > 0 && Date.now() - last > min * 60 * 1000;
+    // Una vez detectado, se olvida: así el siguiente inicio de sesión no se rechaza otra vez.
+    if (expired) localStorage.removeItem(LAST);
+    return expired;
   } catch { return false; }
 }
