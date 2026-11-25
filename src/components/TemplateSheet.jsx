@@ -5,6 +5,7 @@ import { useData } from '../data.jsx';
 import { Sheet, Segmented, Toggle, Confirm } from './ui.jsx';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, FREQUENCIES } from '../lib/categories.js';
 import { parseAmount } from '../lib/finance.js';
+import { resumePatch } from '../screens/RecurringScreen.jsx';
 
 export function TemplateSheet({ open, template, onClose, notify }) {
   const { t, locale } = useI18n();
@@ -38,8 +39,10 @@ export function TemplateSheet({ open, template, onClose, notify }) {
     if (!(amount > 0)) return setError('form.err_amount');
     if (!concept.trim()) return setError('form.err_concept');
     try {
+      const resuming = active && template.active === false;
       await store.update('templates', template.id, {
         concept: concept.trim(), amount, category, frequency, day: Math.min(31, Math.max(1, Number(day) || 1)), active, notes: notes.trim(),
+        ...(resuming ? resumePatch({ ...template, frequency, day: Math.min(31, Math.max(1, Number(day) || 1)) }) : {}),
       });
       notify('common.saved'); onClose();
     } catch (e) { console.error(e); setError('common.error'); }

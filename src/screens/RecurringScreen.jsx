@@ -3,10 +3,16 @@ import { LuRepeat, LuPlus, LuPause, LuPlay } from 'react-icons/lu';
 import { useI18n } from '../i18n/index.jsx';
 import { useData } from '../data.jsx';
 import { CategoryIcon, Empty, SectionTitle } from '../components/ui.jsx';
-import { nextOccurrence, round2 } from '../lib/finance.js';
+import { nextOccurrence, round2, dueOccurrences } from '../lib/finance.js';
 import { formatShortDate } from '../lib/dates.js';
 
 const PER_MONTH = { monthly: 1, quarterly: 1 / 3, annual: 1 / 12 };
+
+// Al reanudar un fijo en pausa, los cargos que vencieron mientras estaba pausado se saltan (no se apuntan de golpe).
+export function resumePatch(tpl) {
+  const missed = dueOccurrences({ ...tpl, active: true });
+  return missed.length ? { active: true, lastPeriod: missed[missed.length - 1].period } : { active: true };
+}
 
 export function RecurringScreen({ openTemplate, openNew, notify }) {
   const { t, money, locale } = useI18n();
@@ -20,7 +26,8 @@ export function RecurringScreen({ openTemplate, openNew, notify }) {
   const monthly = (type) => round2(templates.filter((x) => x.type === type && x.active !== false).reduce((s, x) => s + x.amount * (PER_MONTH[x.frequency] || 1), 0));
 
   async function toggle(tpl) {
-    try { await store.update('templates', tpl.id, { active: tpl.active === false }); notify('common.saved'); }
+    const patch = tpl.active === false ? resumePatch(tpl) : { active: false };
+    try { await store.update('templates', tpl.id, patch); notify('common.saved'); }
     catch (e) { console.error(e); notify('common.error'); }
   }
 
