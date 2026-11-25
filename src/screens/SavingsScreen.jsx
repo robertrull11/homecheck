@@ -1,64 +1,53 @@
 import { useMemo } from 'react';
-import { LuPiggyBank, LuPlus, LuPencil, LuArrowUpRight, LuArrowDownRight } from 'react-icons/lu';
+import { LuPiggyBank, LuPlus, LuPencil, LuCheck } from 'react-icons/lu';
 import { useI18n } from '../i18n/index.jsx';
 import { useData } from '../data.jsx';
-import { Empty, ProgressBar, SectionTitle } from '../components/ui.jsx';
+import { Empty, Ring, SectionTitle } from '../components/ui.jsx';
 import { MovementRow } from '../components/MovementRow.jsx';
-import { goalBalances, round2 } from '../lib/finance.js';
+import { goalBalances, round2, monthFixedStatus } from '../lib/finance.js';
+import { monthName, parseDate, todayStr, formatShortDate } from '../lib/dates.js';
 
-export function SavingsScreen({ period, openGoal, openNew, openMovement }) {
-  const { t, money } = useI18n();
-  const { transactions, goals } = useData();
+export function SavingsScreen({ openGoal, openNew, openMovement, goTo }) {
+  const { t, money, locale } = useI18n();
+  const { transactions, templates, goals } = useData();
+  const now = parseDate(todayStr());
   const balances = useMemo(() => goalBalances(transactions), [transactions]);
   const total = round2(Object.values(balances).reduce((a, b) => a + b, 0));
-  const history = useMemo(() => transactions.filter((x) => x.type === 'saving').sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8), [transactions]);
-  const thisMonth = (goalId) => round2(transactions.filter((x) => x.type === 'saving' && x.category === goalId && x.year === period.year && x.month === period.month).reduce((s, x) => s + x.amount, 0));
+  const thisMonthTotal = round2(transactions.filter((x) => x.type === 'saving' && x.year === now.y && x.month === now.m).reduce((s, x) => s + x.amount, 0));
+  const history = useMemo(() => transactions.filter((x) => x.type === 'saving').sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6), [transactions]);
+  const autoFor = (goalId) => templates.filter((x) => x.type === 'saving' && x.category === goalId && x.active !== false && x.frequency === 'monthly').reduce((a, x) => a + x.amount, 0);
+  const fixed = useMemo(() => monthFixedStatus(templates, transactions, now.y, now.m), [templates, transactions]); // eslint-disable-line react-hooks/exhaustive-deps
+  const done = fixed.filter((f) => f.done).length;
 
   return (
     <div>
       <p className="px-1 text-sm leading-relaxed text-muted">{t('sav.intro')}</p>
 
-      <div className="card mt-4 px-5 py-4">
-        <p className="text-sm font-medium text-muted">{t('sav.total')}</p>
-        <p className="tabular mt-1 text-3xl font-extrabold text-saving">{money(total)}</p>
-      </div>
-
-      <div className="mt-4 flex gap-2">
-        <button className="btn btn-ghost flex-1 bg-card" onClick={() => openGoal(null)}><LuPlus size={18} /> {t('sav.add_goal')}</button>
+      <div className="mt-4 flex items-end justify-between rounded-[22px] border border-[var(--accent)]/25 bg-[var(--accent-soft)] px-5 py-4">
+        <div>
+          <p className="text-[13px] font-semibold text-[var(--accent-dark)]">{t('sav.total')}</p>
+          <p className="font-display tabular mt-1 text-[34px] leading-none font-bold tracking-tight text-[var(--accent-dark)]">{money(total)}</p>
+        </div>
+        {thisMonthTotal !== 0 && <span className="tabular rounded-full bg-white px-2.5 py-1 text-xs font-bold text-[var(--accent-dark)]">{t('sav.this_month_badge', { amount: `${thisMonthTotal > 0 ? '+' : ''}${money(thisMonthTotal)}` })}</span>}
       </div>
 
       {goals.length === 0 ? (
         <div className="mt-4"><Empty icon={LuPiggyBank} text={t('sav.empty')} /></div>
       ) : (
-        <div className="mt-4 space-y-3">
+        <div className="mt-4 grid grid-cols-2 gap-2.5">
           {goals.map((g) => {
             const bal = balances[g.id] || 0;
-            const month = thisMonth(g.id);
+            const auto = autoFor(g.id);
             return (
-              <div key={g.id} className="card p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="truncate font-bold">{g.name}</p>
-                    <p className="text-xs text-muted">
-                      {g.target ? t('sav.target', { amount: money(g.target) }) : ''}{g.target && month ? ' · ' : ''}{month ? t('sav.this_month', { amount: money(month) }) : ''}
-                    </p>
-                  </div>
-                  <button className="-mt-1 -mr-1 rounded-full p-2 text-muted hover:bg-black/5" onClick={() => openGoal(g)} aria-label={t('common.edit')}><LuPencil size={16} /></button>
-                </div>
-                <p className="tabular mt-2 text-2xl font-extrabold">{money(bal)}</p>
-                {g.target > 0 && (
-                  <div className="mt-2 flex items-center gap-2">
-                    <div className="flex-1"><ProgressBar value={bal} max={g.target} color="var(--color-saving)" /></div>
-                    <span className="tabular w-10 text-right text-xs font-semibold text-muted">{Math.min(100, Math.round((bal / g.target) * 100))}%</span>
-                  </div>
-                )}
-                <div className="mt-3 flex gap-2">
-                  <button className="btn flex-1 bg-saving/10 py-2 text-sm text-saving" onClick={() => openNew({ type: 'saving', category: g.id })}>
-                    <LuArrowUpRight size={16} /> {t('form.deposit')}
-                  </button>
-                  <button className="btn btn-ghost flex-1 py-2 text-sm" onClick={() => openNew({ type: 'saving', category: g.id, withdraw: true })}>
-                    <LuArrowDownRight size={16} /> {t('form.withdraw')}
-                  </button>
+              <div key={g.id} className="card relative flex min-w-0 flex-col items-center gap-2 p-3.5 text-center">
+                <button className="absolute top-1.5 right-1.5 flex h-9 w-9 items-center justify-center rounded-full text-muted hover:bg-black/5" onClick={() => openGoal(g)} aria-label={t('common.edit')}><LuPencil size={15} /></button>
+                {g.target > 0 ? <Ring pct={(bal / g.target) * 100} label={t('sav.ring_label', { name: g.name, pct: Math.round((bal / g.target) * 100) })} /> : <LuPiggyBank size={40} className="my-5 text-[var(--accent)]" />}
+                <p className="w-full truncate text-sm font-bold">{g.name}</p>
+                <p className="tabular text-xs text-muted">{g.target > 0 ? t('sav.of_target', { saved: money(bal), target: money(g.target) }) : money(bal)}</p>
+                {auto > 0 && <span className="rounded-md bg-[var(--accent-soft)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--accent-dark)]">{t('sav.auto', { amount: money(auto) })}</span>}
+                <div className="mt-1 flex w-full gap-1.5">
+                  <button className="btn btn-primary h-9 flex-1 rounded-xl px-1 py-0 text-xs" onClick={() => openNew({ type: 'saving', category: g.id })}>{t('form.deposit')}</button>
+                  <button className="btn btn-ghost h-9 flex-1 rounded-xl px-1 py-0 text-xs" onClick={() => openNew({ type: 'saving', category: g.id, withdraw: true })}>{t('form.withdraw')}</button>
                 </div>
               </div>
             );
@@ -66,11 +55,35 @@ export function SavingsScreen({ period, openGoal, openNew, openMovement }) {
         </div>
       )}
 
+      <button className="mt-3 flex h-[52px] w-full items-center justify-center gap-2 rounded-[18px] border-2 border-dashed border-[var(--accent)]/40 text-sm font-bold text-[var(--accent-dark)]" onClick={() => openGoal(null)}>
+        <LuPlus size={18} /> {t('sav.add_goal')}
+      </button>
+
+      {fixed.length > 0 && (
+        <>
+          <SectionTitle right={<span className="text-xs text-muted">{t('sav.fixed_done', { done, total: fixed.length })}</span>}>{t('sav.fixed_month', { month: monthName(locale, now.m).toLowerCase() })}</SectionTitle>
+          <div className="mb-2.5 h-2 rounded-full bg-tint"><div className="h-2 rounded-full bg-[var(--accent)]" style={{ width: `${(done / fixed.length) * 100}%` }} /></div>
+          <div className="card px-3.5">
+            {fixed.slice(0, 8).map((f, i) => (
+              <div key={f.tpl.id} className={`flex items-center gap-3 py-3 ${i < Math.min(fixed.length, 8) - 1 ? 'border-b border-hair' : ''}`}>
+                <span className={`flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full text-sm font-bold ${f.done ? 'bg-[var(--accent-soft)] text-[var(--accent-dark)]' : 'bg-warn-soft text-warn'}`}>{f.done ? <LuCheck size={14} /> : '·'}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">{f.tpl.concept}</p>
+                  <p className="text-xs text-muted">{f.done ? t('sav.fixed_on', { date: formatShortDate(locale, f.tx.date) }) : t('sav.fixed_pending', { date: formatShortDate(locale, f.date) })}</p>
+                </div>
+                <span className={`tabular shrink-0 font-bold ${f.done ? (f.tpl.type === 'income' ? 'text-income' : '') : 'text-muted'}`}>{money(f.done ? Math.abs(f.tx.amount) : f.tpl.amount)}</span>
+              </div>
+            ))}
+            <button className="block w-full py-3 text-center text-[13px] font-bold text-[var(--accent)]" onClick={() => goTo('recurring')}>{t('sav.see_fixed')}</button>
+          </div>
+        </>
+      )}
+
       {history.length > 0 && (
         <>
           <SectionTitle>{t('sav.history')}</SectionTitle>
-          <div className="card divide-y divide-line overflow-hidden">
-            {history.map((tx) => <MovementRow key={tx.id} tx={tx} showDate onClick={() => openMovement(tx)} />)}
+          <div className="card divide-y divide-hair overflow-hidden">
+            {history.map((tx) => <MovementRow key={tx.id} tx={tx} showDate onEdit={openMovement} />)}
           </div>
         </>
       )}
