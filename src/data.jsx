@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, useCal
 import { members } from './config.js';
 import { dueOccurrences } from './lib/finance.js';
 import { expenseCategoriesFor, incomeCategoriesFor, SAVING_COLOR } from './lib/categories.js';
-import { homeBase, contribId, contribDoc, CONTRIB_CATEGORY } from './lib/space.js';
+import { linkedHomeDocs } from './lib/space.js';
 import { useI18n } from './i18n/index.jsx';
 
 const DataContext = createContext(null);
@@ -61,10 +61,7 @@ export function DataProvider({ space, user, onError, onNotice, children }) {
     if (!templates) return;
     const due = templates.filter((tpl) => dueOccurrences(tpl).length > 0 && !inFlight.current.has(tpl.id));
     if (!due.length) return;
-    const extra = space.kind === 'personal'
-      ? (tpl, mov, txId) => (tpl.type === 'expense' && tpl.category === CONTRIB_CATEGORY
-        ? [{ path: [...homeBase(), 'transactions', contribId(txId)], data: contribDoc(mov, txId, user, contribConcept()) }] : [])
-      : null;
+    const extra = space.kind === 'personal' ? (tpl, mov, txId) => linkedHomeDocs(mov, txId, user, contribConcept()) : null;
     (async () => {
       let total = 0;
       for (const tpl of due) {

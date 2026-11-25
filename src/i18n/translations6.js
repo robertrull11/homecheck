@@ -1,0 +1,43 @@
+// Textos de los gastos compartidos pagados desde la cuenta personal.
+export const sharedTranslations = {
+  es: {
+    'shared.toggle': 'Gasto compartido del Hogar',
+    'shared.hint': 'Lo pagas desde tu cuenta, pero es un gasto de casa.',
+    'shared.home_category': 'Categoría en el Hogar',
+    'shared.result': 'En el Hogar saldrá como gasto en esta categoría y, por el mismo importe, como aportación de {name}. Los dos lo veréis con la etiqueta «Pagó {name}».',
+    'shared.badge': 'Compartido',
+    'shared.badge_paid': 'Pagó {name}',
+    'shared.from_personal': 'cuenta personal de {name}',
+    'shared.readonly': 'Este gasto lo pagó {name} desde su cuenta personal. Solo se puede cambiar o borrar desde su espacio personal.',
+  },
+  ca: {
+    'shared.toggle': 'Despesa compartida de la Llar',
+    'shared.hint': 'La pagues des del teu compte, però és una despesa de casa.',
+    'shared.home_category': 'Categoria a la Llar',
+    'shared.result': 'A la Llar sortirà com a despesa en aquesta categoria i, pel mateix import, com a aportació de {name}. Tots dos ho veureu amb l’etiqueta «Va pagar {name}».',
+    'shared.badge': 'Compartida',
+    'shared.badge_paid': 'Va pagar {name}',
+    'shared.from_personal': 'compte personal de {name}',
+    'shared.readonly': 'Aquesta despesa la va pagar {name} des del seu compte personal. Només es pot canviar o esborrar des del seu espai personal.',
+  },
+  en: {
+    'shared.toggle': 'Shared home expense',
+    'shared.hint': 'You pay it from your own account, but it’s a household expense.',
+    'shared.home_category': 'Category in Home',
+    'shared.result': 'In Home it shows up as an expense in this category and, for the same amount, as a contribution from {name}. You’ll both see it tagged “Paid by {name}”.',
+    'shared.badge': 'Shared',
+    'shared.badge_paid': 'Paid by {name}',
+    'shared.from_personal': '{name}’s personal account',
+    'shared.readonly': '{name} paid this from their personal account. It can only be changed or deleted from their personal space.',
+  },
+  fr: {
+    'shared.toggle': 'Dépense partagée du Foyer',
+    'shared.hint': 'Vous la payez depuis votre compte, mais c’est une dépense de la maison.',
+    'shared.home_category': 'Catégorie dans le Foyer',
+    'shared.result': 'Dans le Foyer, elle apparaît comme dépense dans cette catégorie et, pour le même montant, comme contribution de {name}. Vous la verrez tous les deux avec l’étiquette « Payé par {name} ».',
+    'shared.badge': 'Partagée',
+    'shared.badge_paid': 'Payé par {name}',
+    'shared.from_personal': 'compte personnel de {name}',
+    'shared.readonly': '{name} a payé cette dépense depuis son compte personnel. Elle ne peut être modifiée ou supprimée que depuis son espace personnel.',
+  },
+};
