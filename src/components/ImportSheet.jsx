@@ -3,7 +3,7 @@ import { LuFileUp, LuShieldCheck, LuCircleCheck, LuTriangleAlert, LuLoaderCircle
 import { useI18n } from '../i18n/index.jsx';
 import { useData } from '../data.jsx';
 import { Sheet, CatIcon } from './ui.jsx';
-import { readStatement, datedLines } from '../lib/bankImport.js';
+import { readStatements, datedLines } from '../lib/bankImport.js';
 import { planImport, buildImportOps, commitInChunks } from '../lib/importPlan.js';
 import { monthName, formatShortDate } from '../lib/dates.js';
 
@@ -18,19 +18,21 @@ export function ImportSheet({ open, onClose }) {
   const [ov, setOv] = useState({});
   const [done, setDone] = useState(0);
 
-  const reset = () => { setStep('pick'); setError(null); setParsed(null); setYear(null); setOv({}); setDone(0); };
+  const reset = () => { setStep('pick'); setError(null); setParsed(null); setYear(null); setOv({}); setDone(0); setUnknown([]); };
   const close = () => { reset(); onClose(); };
 
+  const [unknown, setUnknown] = useState([]);
+
   async function onFile(e) {
-    const file = e.target.files?.[0];
+    const files = [...(e.target.files || [])];
     e.target.value = '';
-    if (!file) return;
-    setError(null); setStep('reading');
+    if (!files.length) return;
+    setError(null); setUnknown([]); setStep('reading');
     try {
-      const res = await readStatement(file);
+      const { merged: res, unknown: bad } = await readStatements(files);
       if (!res) { setError('imp.err_format'); setStep('pick'); return; }
       if (!res.lines.length) { setError('imp.err_empty'); setStep('pick'); return; }
-      setParsed(res); setYear(res.year); setOv({}); setStep('review');
+      setUnknown(bad); setParsed(res); setYear(res.year); setOv({}); setStep('review');
     } catch (err) {
       console.error(err);
       setError('imp.err_read'); setStep('pick');
@@ -83,7 +85,10 @@ export function ImportSheet({ open, onClose }) {
     </div>
   ) : null;
 
-  const period = parsed?.statement ? `${monthName(locale, parsed.statement.m)} ${year}` : String(year || '');
+  const shift = parsed ? (year || parsed.year) - parsed.year : 0;
+  const label = (s) => `${monthName(locale, s.m)} ${s.y + shift}`;
+  const period = !parsed?.statement ? String(year || '')
+    : parsed.files > 1 && parsed.first && label(parsed.first) !== label(parsed.statement) ? `${label(parsed.first)} – ${label(parsed.statement)}` : label(parsed.statement);
 
   return (
     <Sheet open={open} title={t('imp.title')} onClose={close} footer={footer}>
@@ -94,7 +99,7 @@ export function ImportSheet({ open, onClose }) {
             <span className="font-display text-xl font-bold">{t('imp.pick')}</span>
             <span className="max-w-[30ch] text-sm text-muted text-balance">{t('imp.pick_hint')}</span>
             <span className="btn btn-primary mt-1 px-6">{t('imp.choose_file')}</span>
-            <input type="file" accept="application/pdf,.pdf" className="sr-only" onChange={onFile} />
+            <input type="file" accept="application/pdf,.pdf" multiple className="sr-only" onChange={onFile} />
           </label>
           {error && <p className="mt-4 rounded-2xl bg-danger-soft px-3 py-2.5 text-sm text-danger" role="alert">{t(error)}</p>}
           <p className="mx-auto mt-5 flex max-w-[36ch] items-start gap-2 text-left text-xs leading-relaxed text-muted">
@@ -124,7 +129,7 @@ export function ImportSheet({ open, onClose }) {
           <div className="card p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-xs font-semibold text-muted">{parsed.bank}</p>
+                <p className="text-xs font-semibold text-muted">{parsed.bank}{parsed.files > 1 ? ` · ${t('imp.files', { count: parsed.files })}` : ''}</p>
                 <p className="font-display text-xl font-bold capitalize">{period}</p>
               </div>
               <label className="flex shrink-0 items-center gap-1.5 text-xs text-muted">
@@ -143,6 +148,7 @@ export function ImportSheet({ open, onClose }) {
               ? <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-income"><LuCircleCheck size={15} /> {t('imp.balance_ok', { amount: money(parsed.closing) })}</p>
               : <p className="mt-3 flex items-start gap-1.5 text-xs font-semibold text-warn-ink"><LuTriangleAlert size={15} className="mt-px shrink-0" /> {t('imp.balance_bad', { count: parsed.mismatches })}</p>)}
           </div>
+          {unknown.length > 0 && <p className="mt-3 rounded-2xl bg-warn-soft px-3 py-2.5 text-xs text-warn-ink">{t('imp.skipped_files', { count: unknown.length, names: unknown.join(', ') })}</p>}
           {error && <p className="mt-3 rounded-2xl bg-danger-soft px-3 py-2.5 text-sm text-danger" role="alert">{t(error)}</p>}
 
           <div className="mt-3 space-y-2">
