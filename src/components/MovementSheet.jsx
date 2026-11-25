@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { LuTriangleAlert, LuTrash2, LuRepeat, LuInfo, LuPlus, LuMinus, LuLock } from 'react-icons/lu';
+import { LuTriangleAlert, LuTrash2, LuRepeat, LuInfo, LuPlus, LuMinus, LuLock, LuWallet } from 'react-icons/lu';
 import { useI18n } from '../i18n/index.jsx';
 import { useData } from '../data.jsx';
 import { Sheet, Segmented, Toggle, Confirm, CatIcon } from './ui.jsx';
-import { FREQUENCIES } from '../lib/categories.js';
+import { FREQUENCIES, HOME_EXPENSE } from '../lib/categories.js';
 import { parseAmount, findDuplicates } from '../lib/finance.js';
 import { parseDate, todayStr, formatShortDate } from '../lib/dates.js';
 import { saveMovement, deleteMovement } from '../lib/actions.js';
@@ -31,6 +31,8 @@ export function MovementSheet({ open, initial, defaults, onClose, notify }) {
   const [dups, setDups] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [shared, setShared] = useState(false);
+  const [homeCat, setHomeCat] = useState('leisure');
 
   const firstCat = (ty) => (ty === 'income' ? incomeCats[0]?.key : ty === 'saving' ? goals[0]?.id : expenseCats.find((c) => !c.system)?.key || expenseCats[0]?.key);
 
@@ -50,6 +52,8 @@ export function MovementSheet({ open, initial, defaults, onClose, notify }) {
     setRepeat(!!defaults?.repeat && !initial);
     setMore(!!defaults?.repeat || !!src.notes);
     setFrequency('monthly');
+    setShared(!!src.shared?.category);
+    setHomeCat(src.shared?.category || 'leisure');
     setError(null); setDups(null); setConfirmDelete(false); setBusy(false);
   }, [open, initial]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -66,6 +70,9 @@ export function MovementSheet({ open, initial, defaults, onClose, notify }) {
 
   const amountNum = parseAmount(amountText);
   const willRepeat = repeat && !editing && (type !== 'saving' || direction === 'deposit');
+  // En el espacio personal, un gasto pagado desde la cuenta propia puede ser compartido con el Hogar.
+  const canShare = kind === 'personal' && type === 'expense' && !expenseCats.find((c) => c.key === category)?.system;
+  const sharedValue = canShare && shared ? { category: homeCat } : null;
 
   async function save(skipDupCheck = false) {
     setError(null);
@@ -77,6 +84,7 @@ export function MovementSheet({ open, initial, defaults, onClose, notify }) {
     const signed = type === 'saving' && direction === 'withdraw' ? -amountNum : amountNum;
     const data = { type, category, concept: concept.trim(), amount: signed, date, year: y, month: m, notes: notes.trim() };
     data.frequency = editing ? initial.frequency || 'one-off' : willRepeat ? frequency : 'one-off';
+    if (kind === 'personal') data.shared = sharedValue;
     if (!skipDupCheck && !willRepeat) {
       const found = findDuplicates({ ...data, id: initial?.id }, transactions);
       if (found.length) { setDups(found.slice(0, 3)); return; }
@@ -87,6 +95,7 @@ export function MovementSheet({ open, initial, defaults, onClose, notify }) {
         await space.add('templates', {
           type, category, concept: data.concept, amount: amountNum, frequency, day: d, startDate: date,
           active: true, lastPeriod: null, notes: data.notes, createdBy: user.email,
+          ...(sharedValue ? { shared: sharedValue } : {}),
         });
       } else {
         await saveMovement({ space, user, before: editing ? initial : null, data, contribConcept: contribConcept() });
@@ -129,7 +138,7 @@ export function MovementSheet({ open, initial, defaults, onClose, notify }) {
     >
       {linked && (
         <p className="mb-4 flex gap-2 rounded-2xl bg-[var(--accent-soft)] px-3 py-3 text-sm leading-relaxed text-[var(--accent-dark)]">
-          <LuLock size={18} className="mt-0.5 shrink-0" /> {t('contrib.readonly', { name: memberName(initial.createdBy) })}
+          <LuLock size={18} className="mt-0.5 shrink-0" /> {t(initial.linkedFrom?.kind === 'shared' && initial.type === 'expense' ? 'shared.readonly' : 'contrib.readonly', { name: memberName(initial.createdBy) })}
         </p>
       )}
 
@@ -192,6 +201,31 @@ export function MovementSheet({ open, initial, defaults, onClose, notify }) {
           <button type="button" className={`chip ${otherDate ? 'chip-dark' : ''}`} onClick={() => pickDate('other')}>{otherDate ? formatShortDate(locale, date) : t('form.other_date')}</button>
         </div>
         {otherDate && <input aria-label={t('form.date')} type="date" className="field mb-3" value={date} onChange={(e) => { setDate(e.target.value); setDups(null); }} />}
+
+        {canShare && (
+          <div className="card mb-3 p-4">
+            <Toggle checked={shared} onChange={setShared} label={t('shared.toggle')} hint={t('shared.hint')} />
+            {shared && (
+              <>
+                <p className="label mt-3">{t('shared.home_category')}</p>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {HOME_EXPENSE.map((c) => {
+                    const active = homeCat === c.key;
+                    const label = t(`cat.${c.key}`);
+                    return (
+                      <button key={c.key} type="button" onClick={() => setHomeCat(c.key)} aria-pressed={active}
+                        className={`flex min-w-0 flex-col items-center gap-1 rounded-2xl border-2 px-1 py-2 text-[11px] font-semibold transition ${active ? 'border-[var(--home)] bg-[var(--home-soft)] text-[var(--home-dark)]' : 'border-transparent bg-white'}`}>
+                        <CatIcon label={label} color={c.color} size={30} />
+                        <span className="w-full truncate text-center">{label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="mt-3 flex gap-2 text-xs leading-relaxed text-muted"><LuWallet size={14} className="mt-0.5 shrink-0" />{t('shared.result', { name: memberName(user.email) })}</p>
+              </>
+            )}
+          </div>
+        )}
 
         {!more ? (
           <button type="button" className="chip mb-2" onClick={() => setMore(true)}><LuPlus size={14} /> {t('form.more')}</button>

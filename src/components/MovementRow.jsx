@@ -16,7 +16,8 @@ export function MovementRow({ tx, onEdit, onDelete, showDate = false }) {
   const cat = categoryOf(tx.type, tx.category);
   const sign = tx.type === 'income' ? '+' : tx.type === 'expense' ? '−' : tx.amount >= 0 ? '→ ' : '← ';
   const color = tx.type === 'income' ? 'text-income' : tx.type === 'saving' ? 'text-saving' : 'text-ink';
-  const who = kind === 'home' ? ` · ${memberName(tx.createdBy)}` : '';
+  const paidPersonal = kind === 'home' && tx.paidFrom === 'personal';
+  const who = paidPersonal ? ` · ${t('shared.from_personal', { name: memberName(tx.paidBy || tx.createdBy) })}` : kind === 'home' ? ` · ${memberName(tx.createdBy)}` : '';
 
   const onPointerDown = (e) => { drag.current = { x: e.clientX, y: e.clientY, start: offset, moved: false }; };
   const onPointerMove = (e) => {
@@ -60,6 +61,8 @@ export function MovementRow({ tx, onEdit, onDelete, showDate = false }) {
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-1.5">
             <span className="truncate text-[15px] font-semibold">{tx.concept}</span>
+            {paidPersonal && <span className="shrink-0 rounded-md bg-[var(--me-soft)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--me-dark)]">{t('shared.badge_paid', { name: memberName(tx.paidBy || tx.createdBy) })}</span>}
+            {kind === 'personal' && tx.shared?.category && <span className="shrink-0 rounded-md bg-[var(--home-soft)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--home-dark)]">{t('shared.badge')}</span>}
             {tx.templateId && <span className="shrink-0 rounded-md bg-[var(--accent-soft)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--accent-dark)]">{t('mov.fixed_badge')}</span>}
           </span>
           <span className="block truncate text-xs text-muted">

@@ -73,6 +73,7 @@ export function movementFromTemplate(template, occ, by) {
     notes: template.notes || '',
     createdBy: by,
     auto: true,
+    ...(template.shared ? { shared: template.shared } : {}),
   };
 }
 
