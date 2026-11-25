@@ -1,6 +1,8 @@
 // Textos de la importación de extractos bancarios.
 export const importTranslations = {
   es: {
+    'cat.education': 'Educación',
+    'cat.insurance': 'Seguros',
     'imp.status_maybe': '¿Es el fijo «{concept}»? Tiene el mismo importe. Si lo es, elígelo en «Qué hacer».',
     'imp.button': 'Importar extracto del banco',
     'imp.title': 'Importar extracto',
@@ -35,6 +37,8 @@ export const importTranslations = {
     'imp.other_file': 'Elegir otro archivo',
   },
   ca: {
+    'cat.education': 'Educació',
+    'cat.insurance': 'Assegurances',
     'imp.status_maybe': 'És el fix «{concept}»? Té el mateix import. Si ho és, tria’l a «Què fer».',
     'imp.button': 'Importar extracte del banc',
     'imp.title': 'Importar extracte',
@@ -69,6 +73,8 @@ export const importTranslations = {
     'imp.other_file': 'Triar un altre fitxer',
   },
   en: {
+    'cat.education': 'Education',
+    'cat.insurance': 'Insurance',
     'imp.status_maybe': 'Is it the recurring “{concept}”? Same amount. If so, pick it under “What to do”.',
     'imp.button': 'Import bank statement',
     'imp.title': 'Import statement',
@@ -103,6 +109,8 @@ export const importTranslations = {
     'imp.other_file': 'Choose another file',
   },
   fr: {
+    'cat.education': 'Éducation',
+    'cat.insurance': 'Assurances',
     'imp.status_maybe': 'Est-ce le fixe « {concept} » ? Même montant. Si oui, choisissez-le dans « Que faire ».',
     'imp.button': 'Importer un relevé bancaire',
     'imp.title': 'Importer un relevé',
