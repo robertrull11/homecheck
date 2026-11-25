@@ -3,13 +3,13 @@ import { LuTrash2, LuInfo } from 'react-icons/lu';
 import { useI18n } from '../i18n/index.jsx';
 import { useData } from '../data.jsx';
 import { Sheet, Segmented, Toggle, Confirm } from './ui.jsx';
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, FREQUENCIES } from '../lib/categories.js';
+import { FREQUENCIES } from '../lib/categories.js';
 import { parseAmount } from '../lib/finance.js';
 import { resumePatch } from '../screens/RecurringScreen.jsx';
 
 export function TemplateSheet({ open, template, onClose, notify }) {
   const { t, locale } = useI18n();
-  const { store, goals } = useData();
+  const { space, goals, expenseCats, incomeCats } = useData();
   const [concept, setConcept] = useState('');
   const [amountText, setAmountText] = useState('');
   const [category, setCategory] = useState('');
@@ -40,7 +40,7 @@ export function TemplateSheet({ open, template, onClose, notify }) {
     if (!concept.trim()) return setError('form.err_concept');
     try {
       const resuming = active && template.active === false;
-      await store.update('templates', template.id, {
+      await space.update('templates', template.id, {
         concept: concept.trim(), amount, category, frequency, day: Math.min(31, Math.max(1, Number(day) || 1)), active, notes: notes.trim(),
         ...(resuming ? resumePatch({ ...template, frequency, day: Math.min(31, Math.max(1, Number(day) || 1)) }) : {}),
       });
@@ -49,11 +49,11 @@ export function TemplateSheet({ open, template, onClose, notify }) {
   }
 
   async function doDelete() {
-    try { await store.remove('templates', template.id); notify('common.deleted'); onClose(); }
+    try { await space.remove('templates', template.id); notify('common.deleted'); onClose(); }
     catch (e) { console.error(e); setError('common.error'); }
   }
 
-  const cats = template.type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+  const cats = template.type === 'income' ? incomeCats : expenseCats;
 
   return (
     <Sheet open={open} title={t('rec.edit')} onClose={onClose}
@@ -64,7 +64,7 @@ export function TemplateSheet({ open, template, onClose, notify }) {
           <button className="btn btn-primary flex-[2]" onClick={save}>{t('common.save')}</button>
         </div>
       }>
-      <p className="mb-4 flex gap-2 rounded-xl bg-brand-soft px-3 py-2.5 text-xs leading-relaxed text-brand">
+      <p className="mb-4 flex gap-2 rounded-2xl bg-[var(--accent-soft)] px-3 py-2.5 text-xs leading-relaxed text-[var(--accent-dark)]">
         <LuInfo size={16} className="mt-0.5 shrink-0" /> {t('rec.change_future')}
       </p>
 
@@ -82,7 +82,7 @@ export function TemplateSheet({ open, template, onClose, notify }) {
       <select id="tpl-cat" className="field mb-4" value={category} onChange={(e) => setCategory(e.target.value)}>
         {template.type === 'saving'
           ? goals.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)
-          : cats.map((c) => <option key={c.key} value={c.key}>{t(`cat.${c.key}`)}</option>)}
+          : cats.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
       </select>
 
       <label className="label">{t('form.frequency')}</label>
@@ -98,7 +98,7 @@ export function TemplateSheet({ open, template, onClose, notify }) {
       <label className="label" htmlFor="tpl-notes">{t('form.notes')}</label>
       <textarea id="tpl-notes" rows={2} className="field mb-2 resize-none" value={notes} onChange={(e) => setNotes(e.target.value)} />
 
-      {error && <p className="mt-2 rounded-xl bg-danger-soft px-3 py-2.5 text-sm text-danger" role="alert">{t(error)}</p>}
+      {error && <p className="mt-2 rounded-2xl bg-danger-soft px-3 py-2.5 text-sm text-danger" role="alert">{t(error)}</p>}
 
       <Confirm open={confirmDelete} text={t('rec.delete_confirm')} confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')}
         danger onCancel={() => setConfirmDelete(false)} onConfirm={doDelete} />

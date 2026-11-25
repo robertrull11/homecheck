@@ -7,7 +7,7 @@ import { parseAmount } from '../lib/finance.js';
 
 export function GoalSheet({ open, goal, onClose, notify }) {
   const { t } = useI18n();
-  const { store, transactions, user } = useData();
+  const { space, transactions, user } = useData();
   const [name, setName] = useState('');
   const [target, setTarget] = useState('');
   const [error, setError] = useState(null);
@@ -25,8 +25,8 @@ export function GoalSheet({ open, goal, onClose, notify }) {
     const tgt = target.trim() ? parseAmount(target) : null;
     const data = { name: name.trim(), target: Number.isFinite(tgt) && tgt > 0 ? tgt : null };
     try {
-      if (goal) await store.update('goals', goal.id, data);
-      else await store.add('goals', { ...data, createdBy: user.email });
+      if (goal) await space.update('goals', goal.id, data);
+      else await space.add('goals', { ...data, createdBy: user.email });
       notify('common.saved'); onClose();
     } catch (e) { console.error(e); setError('common.error'); }
   }
@@ -37,7 +37,7 @@ export function GoalSheet({ open, goal, onClose, notify }) {
   }
 
   async function doDelete() {
-    try { await store.remove('goals', goal.id); notify('common.deleted'); onClose(); }
+    try { await space.remove('goals', goal.id); notify('common.deleted'); onClose(); }
     catch (e) { console.error(e); setError('common.error'); }
   }
 
@@ -54,7 +54,7 @@ export function GoalSheet({ open, goal, onClose, notify }) {
       <input id="goal-name" className="field mb-4" placeholder={t('sav.goal_name_placeholder')} value={name} onChange={(e) => setName(e.target.value)} />
       <label className="label" htmlFor="goal-target">{t('sav.goal_target')} <span className="font-normal">({t('common.optional')})</span></label>
       <input id="goal-target" inputMode="decimal" className="field tabular mb-2" value={target} onChange={(e) => setTarget(e.target.value.replace(/[^\d.,]/g, ''))} />
-      {error && <p className="mt-2 rounded-xl bg-danger-soft px-3 py-2.5 text-sm text-danger" role="alert">{t(error)}</p>}
+      {error && <p className="mt-2 rounded-2xl bg-danger-soft px-3 py-2.5 text-sm text-danger" role="alert">{t(error)}</p>}
       <Confirm open={confirmDelete} text={t('sav.delete_confirm')} confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')}
         danger onCancel={() => setConfirmDelete(false)} onConfirm={doDelete} />
     </Sheet>

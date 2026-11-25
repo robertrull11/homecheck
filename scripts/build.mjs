@@ -38,6 +38,8 @@ async function buildCss() {
   for (const f of await walk(src)) {
     const text = await fs.readFile(f, 'utf8');
     for (const m of text.matchAll(/[^\s"'`{}<>()\\,;]+/g)) candidates.add(m[0]);
+    // clases con valores arbitrarios que llevan paréntesis o comas: bg-[var(--accent)], shadow-[0_1px_2px_rgba(0,0,0,.1)]
+    for (const m of text.matchAll(/[^\s"'`{}<>\\;]+/g)) candidates.add(m[0]);
   }
   return compiler.build([...candidates]);
 }
