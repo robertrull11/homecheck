@@ -9,7 +9,7 @@ export const chooserTranslations = {
     'choose.me_desc': 'Tus gastos e ingresos personales.',
     'choose.private': 'Solo lo ves tú',
     'choose.enter': 'Entrar',
-    'choose.hint': 'Puedes cambiar de espacio cuando quieras con el selector de arriba: turquesa es el Hogar y naranja lo personal.',
+    'choose.hint': 'Puedes cambiar de espacio cuando quieras con el selector de arriba: turquesa es el Hogar y malva lo personal.',
   },
   ca: {
     'choose.hello': 'Hola, {name}',
@@ -20,7 +20,7 @@ export const chooserTranslations = {
     'choose.me_desc': 'Les teves despeses i ingressos personals.',
     'choose.private': 'Només ho veus tu',
     'choose.enter': 'Entrar',
-    'choose.hint': 'Pots canviar d’espai quan vulguis amb el selector de dalt: turquesa és la Llar i taronja el personal.',
+    'choose.hint': 'Pots canviar d’espai quan vulguis amb el selector de dalt: turquesa és la Llar i malva el personal.',
   },
   en: {
     'choose.hello': 'Hi, {name}',
@@ -31,7 +31,7 @@ export const chooserTranslations = {
     'choose.me_desc': 'Your personal spending and income.',
     'choose.private': 'Only you can see it',
     'choose.enter': 'Open',
-    'choose.hint': 'Switch spaces at any time with the selector at the top: teal is Home and orange is personal.',
+    'choose.hint': 'Switch spaces at any time with the selector at the top: teal is Home and mauve is personal.',
   },
   fr: {
     'choose.hello': 'Bonjour, {name}',
@@ -42,6 +42,6 @@ export const chooserTranslations = {
     'choose.me_desc': 'Vos dépenses et revenus personnels.',
     'choose.private': 'Vous seul le voyez',
     'choose.enter': 'Entrer',
-    'choose.hint': 'Changez d’espace à tout moment avec le sélecteur en haut : turquoise pour le Foyer, orange pour le personnel.',
+    'choose.hint': 'Changez d’espace à tout moment avec le sélecteur en haut : turquoise pour le Foyer, mauve pour le personnel.',
   },
 };
