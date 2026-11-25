@@ -1,13 +1,13 @@
-// Almacén real: Firebase Auth + Firestore (datos compartidos en tiempo real entre los dos).
+// Almacén real: Firebase Auth + Firestore. Trabaja con rutas (['households','main-home','transactions', id]),
+// así el mismo código sirve para el espacio del Hogar y para el espacio personal de cada uno.
 // El SDK de Firebase se carga desde los servidores oficiales de Google.
 import { dueOccurrences, movementFromTemplate } from './finance.js';
-import { DEFAULT_BUDGETS } from './categories.js';
 
 const V = '10.12.2';
 const CDN = `https://www.gstatic.com/firebasejs/${V}`;
 const load = (name) => import(/* @vite-ignore */ `${CDN}/${name}.js`);
 
-export async function createFirebaseStore(config, householdId) {
+export async function createFirebaseStore(config) {
   const [appMod, authMod, fs] = await Promise.all([load('firebase-app'), load('firebase-auth'), load('firebase-firestore')]);
   const app = appMod.initializeApp(config);
   const auth = authMod.getAuth(app);
@@ -20,47 +20,67 @@ export async function createFirebaseStore(config, householdId) {
   } catch {
     db = fs.getFirestore(app);
   }
-  const base = ['households', householdId];
-  const col = (c) => fs.collection(db, ...base, c);
-  const docRef = (c, id) => fs.doc(db, ...base, c, id);
-  const settingsRef = fs.doc(db, ...base, 'settings', 'main');
+  const ref = (path) => fs.doc(db, ...path);
   const clean = (o) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined));
+  const stamped = (data, stamp) => {
+    if (stamp === 'create') return clean({ ...data, createdAt: fs.serverTimestamp(), updatedAt: fs.serverTimestamp() });
+    if (stamp === 'update') return clean({ ...data, updatedAt: fs.serverTimestamp() });
+    return clean(data);
+  };
 
   return {
     mode: 'firebase',
-    onAuth(cb) { return authMod.onAuthStateChanged(auth, (u) => cb(u ? { email: (u.email || '').toLowerCase() } : null)); },
+    onAuth(cb) {
+      return authMod.onAuthStateChanged(auth, (u) => cb(u ? { uid: u.uid, email: (u.email || '').toLowerCase() } : null));
+    },
     async signIn(email, password) { await authMod.signInWithEmailAndPassword(auth, email.trim(), password); },
     async signOut() { await authMod.signOut(auth); },
     async resetPassword(email) { await authMod.sendPasswordResetEmail(auth, email.trim()); },
-    subscribe(c, cb, onError) {
-      return fs.onSnapshot(col(c), (snap) => cb(snap.docs.map((d) => ({ ...d.data(), id: d.id }))), onError);
+    newId() { return fs.doc(fs.collection(db, '_ids')).id; },
+    listen(collPath, cb, onError) {
+      return fs.onSnapshot(fs.collection(db, ...collPath), (snap) => cb(snap.docs.map((d) => ({ ...d.data(), id: d.id }))), onError);
     },
-    subscribeSettings(cb, onError) {
-      return fs.onSnapshot(settingsRef, (snap) => cb(snap.exists() ? snap.data() : { budgets: { ...DEFAULT_BUDGETS } }), onError);
+    listenDoc(docPath, cb, onError) {
+      return fs.onSnapshot(ref(docPath), (snap) => cb(snap.exists() ? snap.data() : null), onError);
     },
-    async add(c, data) {
-      const ref = await fs.addDoc(col(c), clean({ ...data, createdAt: fs.serverTimestamp(), updatedAt: fs.serverTimestamp() }));
-      return ref.id;
+    // Varias escrituras a la vez: o se guardan todas o ninguna.
+    async commit(ops) {
+      const batch = fs.writeBatch(db);
+      for (const op of ops) {
+        if (op.type === 'delete') batch.delete(ref(op.path));
+        else if (op.type === 'update') batch.update(ref(op.path), stamped(op.data, op.stamp));
+        else batch.set(ref(op.path), stamped(op.data, op.stamp), op.merge ? { merge: true } : undefined);
+      }
+      await batch.commit();
     },
-    async update(c, id, patch) { await fs.updateDoc(docRef(c, id), clean({ ...patch, updatedAt: fs.serverTimestamp() })); },
-    async remove(c, id) { await fs.deleteDoc(docRef(c, id)); },
-    async saveSettings(patch) { await fs.setDoc(settingsRef, patch, { merge: true }); },
     // Transacción: aunque los dos abráis la app a la vez, cada recibo se crea una sola vez.
-    async generateRecurring(templateId, by) {
+    async generateRecurring({ tplPath, txColl, by, extra }) {
       return fs.runTransaction(db, async (tx) => {
-        const tplSnap = await tx.get(docRef('templates', templateId));
-        if (!tplSnap.exists()) return 0;
-        const tpl = { ...tplSnap.data(), id: tplSnap.id };
+        const snap = await tx.get(ref(tplPath));
+        if (!snap.exists()) return 0;
+        const tpl = { ...snap.data(), id: snap.id };
         const occ = dueOccurrences(tpl);
         if (!occ.length) return 0;
         for (const o of occ) {
-          tx.set(docRef('transactions', `${tpl.id}_${o.period}`), {
-            ...movementFromTemplate(tpl, o, by), createdAt: fs.serverTimestamp(), updatedAt: fs.serverTimestamp(),
-          });
+          const txId = `${tpl.id}_${o.period}`;
+          const mov = movementFromTemplate(tpl, o, by);
+          tx.set(ref([...txColl, txId]), stamped(mov, 'create'));
+          for (const e of (extra ? extra(tpl, mov, txId) : [])) tx.set(ref(e.path), stamped(e.data, 'create'));
         }
-        tx.update(docRef('templates', templateId), { lastPeriod: occ[occ.length - 1].period });
+        tx.update(ref(tplPath), { lastPeriod: occ[occ.length - 1].period });
         return occ.length;
       });
+    },
+    // Borra todos los documentos de las colecciones de un espacio.
+    async wipe(base, colls) {
+      for (const c of colls) {
+        const snap = await fs.getDocs(fs.collection(db, ...base, c));
+        for (let i = 0; i < snap.docs.length; i += 400) {
+          const batch = fs.writeBatch(db);
+          snap.docs.slice(i, i + 400).forEach((d) => batch.delete(d.ref));
+          await batch.commit();
+        }
+      }
     },
   };
 }

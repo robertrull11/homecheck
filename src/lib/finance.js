@@ -1,4 +1,4 @@
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, FREQ_STEP } from './categories.js';
+import { FREQ_STEP } from './categories.js';
 import { parseDate, makeDate, daysInMonth, addMonths, periodKey, dayDiff, quarterOf, todayStr } from './dates.js';
 
 export const round2 = (n) => Math.round(n * 100) / 100;
@@ -91,10 +91,10 @@ export function findDuplicates(candidate, transactions, days = 3) {
 // ── Resumen de un mes ──
 // prorate=true reparte los recibos trimestrales/anuales entre sus meses
 // (y estima los que aún no han llegado a partir de los gastos fijos).
-export function monthSummary(transactions, templates, y, m, prorate = false) {
-  const byCat = Object.fromEntries(EXPENSE_CATEGORIES.map((c) => [c.key, 0]));
-  const estByCat = Object.fromEntries(EXPENSE_CATEGORIES.map((c) => [c.key, 0]));
-  const incomeByCat = Object.fromEntries(INCOME_CATEGORIES.map((c) => [c.key, 0]));
+export function monthSummary(transactions, templates, y, m, prorate = false, catKeys = []) {
+  const byCat = Object.fromEntries(catKeys.map((k) => [k, 0]));
+  const estByCat = Object.fromEntries(catKeys.map((k) => [k, 0]));
+  const incomeByCat = {};
   let income = 0, saving = 0;
 
   for (const t of transactions) {
@@ -135,9 +135,9 @@ export function monthSummary(transactions, templates, y, m, prorate = false) {
   };
 }
 
-export function yearSummary(transactions, y) {
+export function yearSummary(transactions, y, catKeys = []) {
   const months = Array.from({ length: 12 }, (_, i) => ({ month: i + 1, income: 0, expense: 0, saving: 0 }));
-  const byCat = Object.fromEntries(EXPENSE_CATEGORIES.map((c) => [c.key, 0]));
+  const byCat = Object.fromEntries(catKeys.map((k) => [k, 0]));
   for (const t of transactions) {
     if (t.year !== y) continue;
     const row = months[t.month - 1];
@@ -168,4 +168,32 @@ function mapRound(obj) {
 export function savingsRate(income, expense) {
   if (!income) return null;
   return Math.round(((income - expense) / income) * 100);
+}
+
+// Próximos cargos de los fijos activos en los próximos `days` días (para la tira del Resumen).
+export function upcomingCharges(templates, today = todayStr(), days = 31) {
+  const limit = new Date(today + 'T00:00:00');
+  limit.setDate(limit.getDate() + days);
+  const lim = `${limit.getFullYear()}-${String(limit.getMonth() + 1).padStart(2, '0')}-${String(limit.getDate()).padStart(2, '0')}`;
+  return templates
+    .filter((t) => t.active !== false)
+    .map((t) => ({ tpl: t, date: nextOccurrence(t, today) }))
+    .filter((x) => x.date && x.date >= today && x.date <= lim)
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+// Fijos del mes: cuántos ya se han apuntado y cuáles faltan.
+export function monthFixedStatus(templates, transactions, y, m, today = todayStr()) {
+  const items = [];
+  for (const t of templates) {
+    if (t.active === false || !t.startDate) continue;
+    const step = FREQ_STEP[t.frequency] || 1;
+    const s = parseDate(t.startDate);
+    const diff = (y * 12 + m) - (s.y * 12 + s.m);
+    if (diff < 0 || diff % step !== 0) continue;
+    const date = makeDate(y, m, Math.min(t.day || s.d, daysInMonth(y, m)));
+    const tx = transactions.find((x) => x.templateId === t.id && x.year === y && x.month === m);
+    items.push({ tpl: t, date, tx, done: !!tx });
+  }
+  return items.sort((a, b) => a.date.localeCompare(b.date));
 }
