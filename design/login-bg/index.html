@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>HomeCheck · fondo animado del login</title>
+<!--
+  Composición del vídeo de fondo de la pantalla de entrada.
+  Igual que en HyperFrames: HTML como fuente del vídeo, con una línea de tiempo
+  "buscable" (window.renderAt(segundos)) que pinta cada fotograma de forma determinista.
+  scripts/render-login-bg.mjs captura los fotogramas con Chrome sin pantalla y ffmpeg los une.
+  Todo movimiento es periódico con periodo DURATION, así el vídeo se repite sin corte.
+-->
+<style>
+  html, body { margin: 0; background: #041f24; }
+  canvas { display: block; }
+</style>
+</head>
+<body data-composition-id="login-bg" data-width="1080" data-height="1080" data-duration="10" data-fps="30">
+<canvas id="c" width="1080" height="1080"></canvas>
+<script>
+const W = 1080, H = 1080, DURATION = 10, TAU = Math.PI * 2;
+const ctx = document.getElementById('c').getContext('2d');
+
+// Generador pseudoaleatorio con semilla: mismo vídeo en cada render.
+let seed = 20261125;
+const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+
+// Rejilla de casitas (el glifo del logo, en pequeño)
+const GAP = 76;
+const houses = [];
+for (let row = -1; row <= H / GAP + 1; row++) {
+  for (let col = -1; col <= W / GAP + 1; col++) {
+    const x = col * GAP + (row % 2 ? GAP / 2 : 0) + (rnd() - 0.5) * 10;
+    const y = row * GAP * 0.92 + (rnd() - 0.5) * 8;
+    houses.push({ x, y, s: 0.8 + rnd() * 0.35, ph: rnd(), k: 1 + Math.floor(rnd() * 2), gold: rnd() < 0.22 });
+  }
+}
+
+// Monedas que suben: recorren exactamente k alturas por ciclo
+const coins = Array.from({ length: 34 }, () => ({
+  x: rnd() * W, y0: rnd() * (H + 200), r: 5 + rnd() * 9, k: 1 + Math.floor(rnd() * 2),
+  wob: 10 + rnd() * 26, wk: 1 + Math.floor(rnd() * 3), ph: rnd(), a: 0.35 + rnd() * 0.5,
+}));
+
+// Auroras: manchas de luz que giran en órbitas cerradas
+const blobs = [
+  { cx: 0.25, cy: 0.30, rx: 0.18, ry: 0.10, r: 520, c: [11, 124, 134], a: 0.55, k: 1, ph: 0.0 },
+  { cx: 0.78, cy: 0.62, rx: 0.14, ry: 0.16, r: 560, c: [25, 181, 190], a: 0.38, k: 1, ph: 0.4 },
+  { cx: 0.50, cy: 0.95, rx: 0.22, ry: 0.06, r: 600, c: [14, 110, 140], a: 0.50, k: 1, ph: 0.7 },
+  { cx: 0.62, cy: 0.12, rx: 0.10, ry: 0.08, r: 380, c: [159, 240, 242], a: 0.14, k: 2, ph: 0.2 },
+];
+
+const smooth = (e0, e1, x) => { const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0))); return t * t * (3 - 2 * t); };
+
+function drawHouse(x, y, s, glow, gold) {
+  ctx.save();
+  ctx.translate(x, y); ctx.scale(s, s);
+  // ventana encendida
+  if (glow > 0.02) {
+    const col = gold ? `rgba(242,193,78,${0.85 * glow})` : `rgba(159,240,242,${0.75 * glow})`;
+    ctx.shadowColor = gold ? 'rgba(242,193,78,0.9)' : 'rgba(159,240,242,0.9)';
+    ctx.shadowBlur = 18 * glow;
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(0, 6, 6.5, 0, TAU); ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+  // tejado + paredes, como el logo
+  ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.strokeStyle = `rgba(159,240,242,${0.10 + 0.32 * glow})`;
+  ctx.beginPath(); ctx.moveTo(-17, -4); ctx.lineTo(0, -19); ctx.lineTo(17, -4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-12.5, -7.5); ctx.lineTo(-12.5, 17); ctx.lineTo(12.5, 17); ctx.lineTo(12.5, -7.5); ctx.stroke();
+  ctx.restore();
+}
+
+window.renderAt = function renderAt(t) {
+  const p = (t % DURATION) / DURATION; // 0..1 del ciclo
+
+  // Fondo: noche turquesa profunda
+  const bg = ctx.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, '#05262c'); bg.addColorStop(0.55, '#063239'); bg.addColorStop(1, '#041b20');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+  // Auroras
+  ctx.globalCompositeOperation = 'lighter';
+  for (const b of blobs) {
+    const a = TAU * (p * b.k + b.ph);
+    const x = (b.cx + Math.cos(a) * b.rx) * W, y = (b.cy + Math.sin(a) * b.ry) * H;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, b.r);
+    g.addColorStop(0, `rgba(${b.c},${b.a})`); g.addColorStop(1, `rgba(${b.c},0)`);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  // Ola de luz en diagonal que enciende las ventanas
+  const diag = W + H;
+  for (const h of houses) {
+    const d = (h.x + h.y) / diag;                    // posición en la diagonal 0..1
+    let ph = (p - d * 0.85 + 1) % 1;                 // la ola cruza en ~1 ciclo
+    const wave = smooth(0.0, 0.06, ph) * (1 - smooth(0.10, 0.38, ph));
+    const twinkle = Math.max(0, Math.sin(TAU * (p * h.k + h.ph))) ** 6 * 0.65;
+    drawHouse(h.x, h.y, h.s, Math.min(1, wave + twinkle), h.gold);
+  }
+
+  // Monedas doradas que suben
+  for (const c of coins) {
+    const span = H + 200;
+    const y = ((c.y0 - p * c.k * span) % span + span) % span - 100;
+    const x = c.x + Math.sin(TAU * (p * c.wk + c.ph)) * c.wob;
+    const fade = smooth(-100, 140, y) * (1 - smooth(H - 120, H + 100, y));
+    const tilt = Math.abs(Math.cos(TAU * (p * c.wk * 2 + c.ph)));      // la moneda gira
+    ctx.save(); ctx.translate(x, y); ctx.scale(0.35 + 0.65 * tilt, 1);
+    ctx.globalAlpha = c.a * fade;
+    const g = ctx.createRadialGradient(-c.r * 0.3, -c.r * 0.3, 0, 0, 0, c.r);
+    g.addColorStop(0, '#ffe7a3'); g.addColorStop(0.6, '#f2c14e'); g.addColorStop(1, '#b8862a');
+    ctx.fillStyle = g; ctx.shadowColor = 'rgba(242,193,78,0.8)'; ctx.shadowBlur = c.r * 1.6;
+    ctx.beginPath(); ctx.arc(0, 0, c.r, 0, TAU); ctx.fill();
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+
+  // Viñeta suave en los bordes
+  const v = ctx.createRadialGradient(W / 2, H / 2, W * 0.25, W / 2, H / 2, W * 0.75);
+  v.addColorStop(0, 'rgba(2,16,19,0)'); v.addColorStop(1, 'rgba(2,16,19,0.55)');
+  ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+};
+
+// Vista previa en directo al abrir el HTML en un navegador
+if (!window.__RENDERING__) {
+  const t0 = performance.now();
+  (function loop(now) { renderAt((now - t0) / 1000); requestAnimationFrame(loop); })(t0);
+} else {
+  renderAt(0);
+}
+</script>
+</body>
+</html>

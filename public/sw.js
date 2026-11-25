@@ -20,6 +20,7 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return; // Firebase y Google van directos a la red
+  if (url.pathname.endsWith('.mp4')) return; // el vídeo va directo (Safari pide trozos del archivo)
 
   // Páginas: primero red (para recibir actualizaciones), si no hay conexión, caché.
   if (req.mode === 'navigate') {

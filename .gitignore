@@ -2,3 +2,5 @@ node_modules/
 dist/
 dist-single/
 public/icons/
+public/media/
+.render-frames/
