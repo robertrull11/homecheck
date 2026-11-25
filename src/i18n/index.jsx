@@ -6,9 +6,10 @@ import { importTranslations } from './translations4.js';
 import { calendarTranslations } from './translations5.js';
 import { sharedTranslations } from './translations6.js';
 import { compareTranslations } from './translations7.js';
+import { v4Translations } from './translations8.js';
 import { currency } from '../config.js';
 
-const translations = Object.fromEntries(Object.entries(base).map(([k, v]) => [k, { ...v, ...extraTranslations[k], ...chooserTranslations[k], ...importTranslations[k], ...calendarTranslations[k], ...sharedTranslations[k], ...compareTranslations[k] }]));
+const translations = Object.fromEntries(Object.entries(base).map(([k, v]) => [k, { ...v, ...extraTranslations[k], ...chooserTranslations[k], ...importTranslations[k], ...calendarTranslations[k], ...sharedTranslations[k], ...compareTranslations[k], ...v4Translations[k] }]));
 
 const I18nContext = createContext(null);
 const STORAGE_KEY = 'casa-lang';
