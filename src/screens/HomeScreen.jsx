@@ -4,7 +4,7 @@ import { useI18n } from '../i18n/index.jsx';
 import { useData } from '../data.jsx';
 import { CatIcon, ProgressBar, SectionTitle, Toggle, Empty } from '../components/ui.jsx';
 import { MovementRow } from '../components/MovementRow.jsx';
-import { monthSummary, yearSummary, savingsRate, upcomingCharges } from '../lib/finance.js';
+import { monthSummary, yearSummary, savingsRate, upcomingCharges, spendByCat, monthsWithData } from '../lib/finance.js';
 import { monthName, parseDate, todayStr, daysInMonth } from '../lib/dates.js';
 
 const PRORATE_KEY = 'casa-prorate';
@@ -56,8 +56,13 @@ function Hero({ title, income, expense, saving, free, pace }) {
 
 function MonthView({ period, prorate, setProrate, openMovement, goTo }) {
   const { t, money, locale } = useI18n();
-  const { transactions, templates, expenseCats, kind } = useData();
+  const { transactions, templates, catsForYear, kind } = useData();
+  const expenseCats = catsForYear(period.year);
   const keys = expenseCats.map((c) => c.key);
+  // Mismo mes del año anterior (solo si ese mes tiene datos).
+  const prev = useMemo(() => (monthsWithData(transactions, period.year - 1).has(period.month)
+    ? spendByCat(transactions, period.year - 1, period.month, period.month) : null), [transactions, period]);
+  const prevLabel = `${monthName(locale, period.month, 'short')} ${period.year - 1}`;
   const s = useMemo(() => monthSummary(transactions, templates, period.year, period.month, prorate, keys), [transactions, templates, period, prorate, keys.join()]); // eslint-disable-line react-hooks/exhaustive-deps
   const recent = useMemo(() => transactions
     .filter((x) => x.year === period.year && x.month === period.month)
@@ -142,9 +147,10 @@ function MonthView({ period, prorate, setProrate, openMovement, goTo }) {
                       </span>
                       <span className="tabular shrink-0">
                         {s.estByCat[c.key] > 0 && <>{t('home.estimated', { amount: money(s.estByCat[c.key]) })} · </>}
-                        {c.budget ? t('home.of_budget', { amount: money(c.budget) }) : ''}
+                        {c.budget ? t(c.autoYear ? 'home.of_budget_auto' : 'home.of_budget', { amount: money(c.budget), year: c.autoYear }) : ''}
                       </span>
                     </div>
+                    {prev && <VsLastYear label={prevLabel} now={spent} before={prev[c.key] || 0} />}
                   </>
                 )}
               </div>
@@ -171,9 +177,23 @@ function MonthView({ period, prorate, setProrate, openMovement, goTo }) {
 
 function YearView({ year, onPickMonth }) {
   const { t, money, money0, locale } = useI18n();
-  const { transactions, expenseCats, incomeCats } = useData();
+  const { transactions, catsForYear, incomeCats } = useData();
+  const expenseCats = catsForYear(year);
   const keys = expenseCats.map((c) => c.key);
   const s = useMemo(() => yearSummary(transactions, year, keys), [transactions, year, keys.join()]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Comparación con el año anterior. El año en curso se compara con el mismo periodo hasta el último mes
+  // cerrado (el extracto del mes en curso aún no ha llegado y la comparación saldría engañosa).
+  const today = parseDate(todayStr());
+  const toMonth = year === today.y ? Math.max(1, today.m - 1) : 12;
+  const cmp = useMemo(() => {
+    if (!monthsWithData(transactions, year - 1).size) return null;
+    const before = spendByCat(transactions, year - 1, 1, toMonth);
+    const now = spendByCat(transactions, year, 1, toMonth);
+    const sum = (o) => Object.entries(o).filter(([k]) => expenseCats.some((c) => c.key === k && !c.system)).reduce((a, [, v]) => a + v, 0);
+    return { before, now, totalBefore: sum(before), totalNow: sum(now) };
+  }, [transactions, year, toMonth, keys.join()]); // eslint-disable-line react-hooks/exhaustive-deps
+  const cmpMonths = toMonth === 1 ? monthName(locale, 1, 'short') : `${monthName(locale, 1, 'short')}–${monthName(locale, toMonth, 'short')}`;
+  const cmpLabel = toMonth === 12 ? String(year - 1) : `${cmpMonths} ${year - 1}`;
   const max = Math.max(1, ...s.months.map((m) => Math.max(m.income, m.expense)));
   const incomeByCat = useMemo(() => {
     const out = {};
@@ -218,7 +238,17 @@ function YearView({ year, onPickMonth }) {
         </table>
       </div>
 
-      <SectionTitle>{t('home.where')}</SectionTitle>
+      {cmp && (
+        <div className="card mt-4 px-4 py-3">
+          <p className="text-xs font-semibold text-muted">{t(toMonth === 12 ? 'cmp.title_year' : 'cmp.title_ytd', { year: year - 1, months: cmpMonths })}</p>
+          <div className="mt-1 flex items-baseline justify-between gap-2">
+            <span className="tabular text-sm"><b>{year}: {money0(cmp.totalNow)}</b> <span className="text-muted">· {year - 1}: {money0(cmp.totalBefore)}</span></span>
+            <Delta now={cmp.totalNow} before={cmp.totalBefore} pct />
+          </div>
+        </div>
+      )}
+
+      <SectionTitle right={cmp ? <span className="text-xs text-muted">{t('cmp.vs', { period: cmpLabel })}</span> : null}>{t('home.where')}</SectionTitle>
       <div className="card px-3.5 py-1">
         {expenseCats.map((c, i) => {
           const spent = s.byCat[c.key] || 0;
@@ -232,7 +262,10 @@ function YearView({ year, onPickMonth }) {
                   <span className="tabular shrink-0 text-sm font-bold">{money0(spent)}</span>
                 </div>
                 {!c.system && <div className="mt-1.5"><ProgressBar value={spent} max={budget} color={c.color} /></div>}
-                <div className="tabular mt-1 text-right text-[11px] text-muted">{c.system ? '' : budget ? `${t('home.year_budget')}: ${money0(budget)}` : t('home.no_budget')}</div>
+                <div className="tabular mt-1 text-right text-[11px] text-muted">{c.system ? '' : budget ? `${t('home.year_budget')}: ${money0(budget)}${c.autoYear ? ` · ${t('home.budget_auto_tag', { year: c.autoYear })}` : ''}` : t('home.no_budget')}</div>
+                {cmp && !c.system && (toMonth === 12
+                  ? <VsLastYear label={String(year - 1)} now={spent} before={cmp.before[c.key] || 0} round />
+                  : <VsLastYear label={`${cmpMonths} ${year}: ${money0(cmp.now[c.key] || 0)} · ${year - 1}`} now={cmp.now[c.key] || 0} before={cmp.before[c.key] || 0} round />)}
               </div>
             </div>
           );
@@ -250,5 +283,32 @@ function YearView({ year, onPickMonth }) {
         ))}
       </div>
     </div>
+  );
+}
+
+// «nov 2025: 1.020 € · ▲ 52 €»: más gasto que el año anterior en rojo, menos en verde.
+function VsLastYear({ label, now, before, round = false }) {
+  const { money, money0 } = useI18n();
+  const fmt = round ? money0 : money;
+  if (!now && !before) return null;
+  return (
+    <div className="tabular mt-0.5 flex justify-between gap-2 text-[11px] text-muted">
+      <span className="truncate">{label}: {fmt(before)}</span>
+      <Delta now={now} before={before} round={round} />
+    </div>
+  );
+}
+
+function Delta({ now, before, pct = false, round = false }) {
+  const { t, money, money0 } = useI18n();
+  const diff = Math.round((now - before) * 100) / 100;
+  if (Math.abs(diff) < 0.5) return <span className="shrink-0 text-[11px] font-semibold text-muted">= {t('cmp.same')}</span>;
+  const up = diff > 0;
+  const p = before > 0 ? Math.round((diff / before) * 100) : null;
+  const amount = (round || pct ? money0 : money)(Math.abs(diff));
+  return (
+    <span className={`tabular shrink-0 text-[11px] font-bold ${up ? 'text-danger' : 'text-income'}`} title={t(up ? 'cmp.more' : 'cmp.less')}>
+      {up ? '▲' : '▼'} {amount}{pct && p != null && Math.abs(p) >= 1 ? ` (${up ? '+' : '−'}${Math.abs(p)} %)` : ''}
+    </span>
   );
 }

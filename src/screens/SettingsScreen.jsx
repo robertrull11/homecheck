@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { LuDownload, LuLogOut, LuSmartphone, LuInfo, LuUndo2, LuPlus, LuTrash2, LuLock, LuShieldCheck } from 'react-icons/lu';
 import { useI18n } from '../i18n/index.jsx';
 import { useData } from '../data.jsx';
-import { CatIcon, SectionTitle, Confirm } from '../components/ui.jsx';
+import { CatIcon, SectionTitle, Confirm, Toggle } from '../components/ui.jsx';
 import { LanguageSelect } from '../components/LanguageSelect.jsx';
 import { PALETTE } from '../lib/categories.js';
-import { parseAmount, round2 } from '../lib/finance.js';
+import { parseAmount, round2, lastYearBudgets } from '../lib/finance.js';
+import { todayStr } from '../lib/dates.js';
 import { exportCsv } from '../lib/exportCsv.js';
 import { getAutoLock, setAutoLock, AUTOLOCK_OPTIONS } from '../lib/autolock.js';
 import { members } from '../config.js';
@@ -110,12 +111,20 @@ export function SettingsScreen({ period, notify, store }) {
 
 function HomeBudgets({ expenseCats, space, notify, t, locale }) {
   const { money } = useI18n();
+  const { autoBudgets, transactions } = useData();
+  const year = +todayStr().slice(0, 4);
+  // Con el modo automático, las categorías con gasto el año anterior toman su media mensual real.
+  const auto = autoBudgets ? lastYearBudgets(transactions, year) : {};
+  const isAuto = (key) => auto[key] != null;
+  async function setMode(on) {
+    try { await space.saveSettings({ budgetMode: on ? 'auto' : 'manual' }); notify('common.saved'); } catch (e) { console.error(e); notify('common.error'); }
+  }
   const [draft, setDraft] = useState({});
   useEffect(() => { setDraft(Object.fromEntries(expenseCats.map((c) => [c.key, fmtNum(c.budget, locale)]))); }, [expenseCats.map((c) => c.budget).join(), locale]); // eslint-disable-line react-hooks/exhaustive-deps
   const parsed = Object.fromEntries(Object.entries(draft).map(([k, v]) => [k, v === '' ? 0 : parseAmount(v)]));
   const dirty = expenseCats.some((c) => round2(parsed[c.key] || 0) !== round2(c.budget));
   const valid = Object.values(parsed).every((n) => Number.isFinite(n) && n >= 0);
-  const total = round2(Object.values(parsed).reduce((a, b) => a + (Number.isFinite(b) ? b : 0), 0));
+  const total = round2(Object.entries(parsed).reduce((a, [k, b]) => a + (isAuto(k) ? auto[k] : Number.isFinite(b) ? b : 0), 0));
   async function save() {
     try { await space.saveSettings({ budgets: parsed }); notify('common.saved'); } catch (e) { console.error(e); notify('common.error'); }
   }
@@ -124,13 +133,19 @@ function HomeBudgets({ expenseCats, space, notify, t, locale }) {
       <SectionTitle>{t('set.budgets')}</SectionTitle>
       <div className="card p-4">
         <p className="mb-3 text-xs leading-relaxed text-muted">{t('set.budgets_hint')}</p>
+        <div className="mb-3 rounded-2xl bg-[var(--accent-soft)] p-3">
+          <Toggle checked={autoBudgets} onChange={setMode} label={t('set.budget_auto')} hint={t('set.budget_auto_hint', { year: year - 1 })} />
+        </div>
         <div className="space-y-2.5">
           {expenseCats.map((c) => (
             <label key={c.key} className="flex items-center gap-3">
               <CatIcon label={c.label} color={c.color} size={32} />
-              <span className="min-w-0 flex-1 text-sm leading-tight font-semibold">{c.label}</span>
+              <span className="min-w-0 flex-1 text-sm leading-tight font-semibold">{c.label}
+                {isAuto(c.key) && <span className="block text-[11px] font-normal text-muted">{t('home.budget_auto_tag', { year: year - 1 })}</span>}
+              </span>
               <span className="relative w-28">
-                <input inputMode="decimal" className="field tabular py-2 pr-7 text-right" value={draft[c.key] ?? ''}
+                <input inputMode="decimal" className="field tabular py-2 pr-7 text-right disabled:opacity-60" disabled={isAuto(c.key)}
+                  value={isAuto(c.key) ? fmtNum(auto[c.key], locale) : draft[c.key] ?? ''}
                   onChange={(e) => setDraft({ ...draft, [c.key]: e.target.value.replace(/[^\d.,]/g, '') })} aria-label={c.label} />
                 <span className="absolute top-1/2 right-2.5 -translate-y-1/2 text-sm text-muted">€</span>
               </span>
