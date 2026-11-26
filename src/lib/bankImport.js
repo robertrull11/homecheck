@@ -174,7 +174,64 @@ export function parseDeutscheBankIntegrated(pages) {
   };
 }
 
-const PARSERS = [parseDeutscheBank, parseDeutscheBankIntegrated];
+// ── BBVA: "Últimos movimientos" descargado de la web o la app (PDF) ──
+// Cada movimiento ocupa dos filas: «fecha · concepto · importe · saldo» y debajo «Fecha valor … · detalle».
+// Vienen del más reciente al más antiguo y cada fecha trae el año.
+const DATE_SLASH = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+const EURO = /^(-?)(\d{1,3}(?:\.?\d{3})*,\d{2})\s*€$/;
+const toEuro = (s) => { const m = s.match(EURO); if (!m) return null; const n = Number(m[2].replace(/\./g, '').replace(',', '.')); return m[1] ? -n : n; };
+// Detalles que no aportan nada al concepto
+const BBVA_NOISE = /^(Pago con tarjeta|Otros|Transferencia recibida|Ingreso por n[oó]mina o pensi[oó]n|Bbva oficina\b.*)$/i;
+
+export function parseBBVA(pages) {
+  const rows = pages.flatMap(rowsOf);
+  const text = rows.map((r) => r.map((c) => c.s).join(' ')).join('\n');
+  if (!/BANCO BILBAO VIZCAYA|BBVA/i.test(text) || !/[ÚU]ltimos movimientos/i.test(text)) return null;
+
+  const newestFirst = [];
+  for (const r of rows) {
+    const d = r[0].s.match(DATE_SLASH);
+    if (d && r[0].x < 120) {
+      const rest = r.slice(1);
+      const nums = rest.filter((c) => EURO.test(c.s));
+      const concept = rest.filter((c) => !EURO.test(c.s)).map((c) => c.s).join(' ').replace(/\s+/g, ' ').trim();
+      if (nums.length < 1 || !concept) continue;
+      newestFirst.push({ day: +d[1], month: +d[2], y: +d[3], concept, amount: toEuro(nums[0].s), balance: nums.length > 1 ? toEuro(nums[nums.length - 1].s) : null });
+      continue;
+    }
+    const v = r[0].s.match(/^Fecha valor\s+\d{2}\/\d{2}\/\d{4}$/i);
+    const last = newestFirst[newestFirst.length - 1];
+    if (v && last && !last.detailDone) {
+      const detail = r.slice(1).map((c) => c.s).join(' ').replace(/\s+/g, ' ').trim();
+      if (detail && !BBVA_NOISE.test(detail)) last.concept += ` · ${detail}`;
+      last.detailDone = true;
+    }
+  }
+  const lines = newestFirst.reverse().map(({ detailDone, ...l }) => l);
+  const first = lines[0];
+  const opening = first && first.balance != null ? round2(first.balance - first.amount) : null;
+
+  let mismatches = 0;
+  let running = opening;
+  for (const l of lines) {
+    if (running != null && l.balance != null && Math.abs(round2(running + l.amount) - l.balance) > 0.005) mismatches++;
+    running = l.balance != null ? l.balance : running != null ? round2(running + l.amount) : null;
+  }
+  const last = lines[lines.length - 1];
+  return {
+    bank: 'BBVA',
+    statement: last ? { d: last.day, m: last.month, y: last.y } : null,
+    year: last ? last.y : new Date().getFullYear(),
+    fixedYear: true,
+    lines,
+    opening,
+    closing: last ? last.balance : opening,
+    balanceChecked: opening != null && lines.every((l) => l.balance != null),
+    mismatches,
+  };
+}
+
+const PARSERS = [parseDeutscheBank, parseDeutscheBankIntegrated, parseBBVA];
 
 export async function readStatement(file) {
   const pages = await pdfToPages(file);

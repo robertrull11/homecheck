@@ -115,6 +115,9 @@ export function buildImportOps({ space, user, rows, rules = {}, contribConcept }
       type: r.type, category: r.category, concept: r.concept, amount: r.amount,
       date: r.date, year: r.year, month: r.month, notes: '', frequency: 'one-off', source: 'import', createdBy: user.email,
     };
+    // Una aportación al hogar que sale del extracto personal ya está en el Hogar por el extracto de la cuenta
+    // común: no se crea otro ingreso enlazado (sería un duplicado).
+    if (space.kind === 'personal' && r.type === 'expense' && r.category === CONTRIB_CATEGORY) data.homeLink = false;
     ops.push({ type: 'set', path: space.path('transactions', r.id), data, stamp: 'create' });
     if (space.kind === 'personal') ops.push(...contribOps({ before: null, after: data, personalTxId: r.id, user, concept: contribConcept }));
     learned[r.key] = { type: r.type, category: r.category };
