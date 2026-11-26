@@ -7,6 +7,7 @@ import { MovementRow } from '../components/MovementRow.jsx';
 import { monthSummary, yearSummary, savingsRate, upcomingCharges, spendByCat, monthsWithData } from '../lib/finance.js';
 import { monthName, parseDate, todayStr, daysInMonth } from '../lib/dates.js';
 import { CompareView } from './CompareView.jsx';
+import { AdvisorCard } from '../components/AdvisorCard.jsx';
 
 const PRORATE_KEY = 'casa-prorate';
 
@@ -106,6 +107,8 @@ function MonthView({ period, prorate, setProrate, openMovement, goTo }) {
           </span>
         </button>
       )}
+
+      {isCurrent && <AdvisorCard />}
 
       {upcoming.length > 0 && (
         <>
