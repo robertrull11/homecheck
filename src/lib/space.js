@@ -64,6 +64,7 @@ export function sharedDocs(mov, personalTxId, user, contribConcept) {
 
 // Documentos del Hogar que nacen de un movimiento personal (aportación o gasto compartido).
 export function linkedHomeDocs(mov, personalTxId, user, contribConcept) {
+  if (mov?.homeLink === false && !isShared(mov)) return [];
   if (mov?.type === 'expense' && mov.category === CONTRIB_CATEGORY) return [{ path: [...homeBase(), 'transactions', contribId(personalTxId)], data: contribDoc(mov, personalTxId, user, contribConcept) }];
   if (isShared(mov)) return sharedDocs(mov, personalTxId, user, contribConcept);
   return [];
@@ -73,6 +74,10 @@ export function linkedHomeDocs(mov, personalTxId, user, contribConcept) {
 export function contribOps({ before, after, personalTxId, user, concept }) {
   const tx = (p) => [...homeBase(), 'transactions', p];
   const ops = [];
+  // Aportaciones importadas del extracto personal (homeLink: false): el Hogar ya las tiene por su propio
+  // extracto, así que no se crea ni se toca ningún ingreso enlazado (evita duplicados al editarlas).
+  const flag = after ? (after.homeLink ?? before?.homeLink) : before?.homeLink;
+  if (flag === false && !isShared(after) && !isShared(before)) return ops;
   const wasLinked = before && before.type === 'expense' && before.category === CONTRIB_CATEGORY;
   const isLinked = after && after.type === 'expense' && after.category === CONTRIB_CATEGORY;
   if (isLinked) ops.push({ type: 'set', path: tx(contribId(personalTxId)), data: contribDoc(after, personalTxId, user, concept), stamp: 'create' });
