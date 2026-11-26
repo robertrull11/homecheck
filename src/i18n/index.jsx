@@ -9,9 +9,10 @@ import { compareTranslations } from './translations7.js';
 import { v4Translations } from './translations8.js';
 import { installTranslations } from './translations9.js';
 import { v3Translations } from './translations10.js';
+import { merchantsTranslations } from './translations11.js';
 import { currency } from '../config.js';
 
-const translations = Object.fromEntries(Object.entries(base).map(([k, v]) => [k, { ...v, ...extraTranslations[k], ...chooserTranslations[k], ...importTranslations[k], ...calendarTranslations[k], ...sharedTranslations[k], ...compareTranslations[k], ...v4Translations[k], ...installTranslations[k], ...v3Translations[k] }]));
+const translations = Object.fromEntries(Object.entries(base).map(([k, v]) => [k, { ...v, ...extraTranslations[k], ...chooserTranslations[k], ...importTranslations[k], ...calendarTranslations[k], ...sharedTranslations[k], ...compareTranslations[k], ...v4Translations[k], ...installTranslations[k], ...v3Translations[k], ...merchantsTranslations[k] }]));
 
 const I18nContext = createContext(null);
 const STORAGE_KEY = 'casa-lang';
@@ -39,7 +40,9 @@ export function I18nProvider({ children }) {
     const moneyFmt = new Intl.NumberFormat(locale, { style: 'currency', currency });
     const moneyFmt0 = new Intl.NumberFormat(locale, { style: 'currency', currency, maximumFractionDigits: 0 });
     const t = (key, vars) => {
-      let s = dict[key] ?? translations.es[key] ?? key;
+      // Singular: si count es 1 y existe «clave_one», se usa esa
+      const one = vars && Number(vars.count) === 1 ? `${key}_one` : null;
+      let s = (one && (dict[one] ?? translations.es[one])) || (dict[key] ?? translations.es[key] ?? key);
       if (vars) for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, v);
       return s;
     };

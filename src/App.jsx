@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { LuLayoutDashboard, LuList, LuPlus, LuRepeat, LuPiggyBank, LuSettings, LuChevronLeft, LuChevronRight, LuWifiOff, LuTriangleAlert, LuHouse, LuUser, LuLock, LuCalendarDays } from 'react-icons/lu';
+import { LuLayoutDashboard, LuList, LuPlus, LuRepeat, LuPiggyBank, LuSettings, LuChevronLeft, LuChevronRight, LuWifiOff, LuTriangleAlert, LuHouse, LuUser, LuLock, LuCalendarDays, LuStore } from 'react-icons/lu';
 import { I18nProvider, useI18n } from './i18n/index.jsx';
 import { DataProvider, useData, memberNameFor } from './data.jsx';
 import { firebaseConfig, members } from './config.js';
@@ -15,6 +15,7 @@ import { RecurringScreen } from './screens/RecurringScreen.jsx';
 import { SavingsScreen } from './screens/SavingsScreen.jsx';
 import { SettingsScreen } from './screens/SettingsScreen.jsx';
 import { CalendarScreen } from './screens/CalendarScreen.jsx';
+import { MerchantsScreen } from './screens/MerchantsScreen.jsx';
 import { MovementSheet } from './components/MovementSheet.jsx';
 import { TemplateSheet } from './components/TemplateSheet.jsx';
 import { GoalSheet } from './components/GoalSheet.jsx';
@@ -94,6 +95,7 @@ function Center({ children }) {
 const TABS = [
   { key: 'home', icon: LuLayoutDashboard, label: 'nav.home' },
   { key: 'movements', icon: LuList, label: 'nav.movements' },
+  { key: 'merchants', icon: LuStore, label: 'nav.merchants' },
   { key: 'add', icon: LuPlus, label: 'nav.add' },
   { key: 'calendar', icon: LuCalendarDays, label: 'nav.calendar' },
   { key: 'recurring', icon: LuRepeat, label: 'nav.recurring' },
@@ -228,6 +230,7 @@ function Main({ notify, problem, store, spaceKey, setSpaceKey }) {
           <>
             {tab === 'home' && <HomeScreen period={period} setPeriod={setPeriod} openMovement={openMovement} goTo={goTo} />}
             {tab === 'movements' && <MovementsScreen period={period.mode === 'compare' ? { ...period, mode: 'year' } : period} filter={movFilter} openMovement={openMovement} requestDelete={setToDelete} />}
+            {tab === 'merchants' && <MerchantsScreen openMovement={openMovement} />}
             {tab === 'calendar' && <CalendarScreen />}
             {tab === 'recurring' && <RecurringScreen openTemplate={(tpl) => setTplSheet({ open: true, tpl })} openNew={openNew} notify={notify} />}
             {tab === 'savings' && <SavingsScreen openGoal={(goal) => setGoalSheet({ open: true, goal })} openNew={openNew} openMovement={openMovement} goTo={goTo} />}
@@ -245,7 +248,7 @@ function Main({ notify, problem, store, spaceKey, setSpaceKey }) {
             </button>
           ) : (
             <button key={key} onClick={() => goTo(key)}
-              className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl px-0 py-0.5 text-[10px] font-semibold tracking-tight min-[400px]:text-[10.5px] ${tab === key ? 'text-[var(--accent)]' : 'text-muted'}`}>
+              className={`flex min-w-0 flex-auto flex-col items-center gap-0.5 rounded-xl px-0 py-0.5 text-[9px] font-semibold tracking-tight min-[360px]:text-[9.5px] min-[380px]:text-[10px] min-[420px]:text-[10.5px] ${tab === key ? 'text-[var(--accent)]' : 'text-muted'}`}>
               <Icon size={22} />
               <span className="max-w-full truncate">{t(label)}</span>
             </button>
