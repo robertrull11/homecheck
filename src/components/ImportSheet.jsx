@@ -15,6 +15,7 @@ export function ImportSheet({ open, onClose }) {
   const [error, setError] = useState(null);
   const [parsed, setParsed] = useState(null);
   const [year, setYear] = useState(null);
+  const [limit, setLimit] = useState(150); // con varios años de extractos hay miles de filas: se muestran poco a poco
   const [ov, setOv] = useState({});
   const [done, setDone] = useState(0);
 
@@ -32,7 +33,7 @@ export function ImportSheet({ open, onClose }) {
       const { merged: res, unknown: bad } = await readStatements(files);
       if (!res) { setError('imp.err_format'); setStep('pick'); return; }
       if (!res.lines.length) { setError('imp.err_empty'); setStep('pick'); return; }
-      setUnknown(bad); setParsed(res); setYear(res.year); setOv({}); setStep('review');
+      setUnknown(bad); setParsed(res); setYear(res.year); setOv({}); setLimit(150); setStep('review');
     } catch (err) {
       console.error(err);
       setError('imp.err_read'); setStep('pick');
@@ -44,6 +45,10 @@ export function ImportSheet({ open, onClose }) {
     ? planImport({ lines: datedLines(parsed, year), transactions, expenseCats, incomeCats, rules })
     : []), [parsed, year, transactions, expenseCats, incomeCats]); // eslint-disable-line react-hooks/exhaustive-deps
   const rows = baseRows.map((r) => ({ ...r, ...ov[r.index] }));
+  // Primero lo que pide atención (sin categoría o con dudas), luego el resto en orden
+  const needsLook = (r) => r.action !== 'skip' && ((!r.action.startsWith('fixed:') && !r.category) || r.status === 'maybe');
+  const ordered = rows.length > limit ? [...rows.filter(needsLook), ...rows.filter((r) => !needsLook(r))] : rows;
+  const shown = ordered.slice(0, limit);
   const catsFor = (type) => (type === 'income' ? incomeCats : expenseCats);
   const catLabel = (type, key) => catsFor(type).find((c) => c.key === key);
 
@@ -152,7 +157,7 @@ export function ImportSheet({ open, onClose }) {
           {error && <p className="mt-3 rounded-2xl bg-danger-soft px-3 py-2.5 text-sm text-danger" role="alert">{t(error)}</p>}
 
           <div className="mt-3 space-y-2">
-            {rows.map((r) => {
+            {shown.map((r) => {
               const skip = r.action === 'skip';
               const fixedTx = r.action.startsWith('fixed:') ? r.fixedOptions.find((x) => `fixed:${x.id}` === r.action) || r.match : null;
               const cat = catLabel(r.type, fixedTx ? fixedTx.category : r.category);
@@ -196,6 +201,11 @@ export function ImportSheet({ open, onClose }) {
               );
             })}
           </div>
+          {rows.length > shown.length && (
+            <button className="btn btn-ghost mt-3 w-full py-2.5 text-sm" onClick={() => setLimit((n) => n + 300)}>
+              {t('imp.more', { count: Math.min(300, rows.length - shown.length), total: rows.length - shown.length })}
+            </button>
+          )}
           <button className="mt-4 w-full py-2 text-sm font-semibold text-[var(--accent)]" onClick={reset}>{t('imp.other_file')}</button>
         </div>
       )}
