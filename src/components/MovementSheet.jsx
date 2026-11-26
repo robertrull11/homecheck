@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { LuTriangleAlert, LuTrash2, LuRepeat, LuInfo, LuPlus, LuMinus, LuLock, LuWallet } from 'react-icons/lu';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { LuTriangleAlert, LuTrash2, LuRepeat, LuInfo, LuPlus, LuMinus, LuLock, LuWallet, LuCamera, LuClipboardPaste, LuScanLine } from 'react-icons/lu';
 import { useI18n } from '../i18n/index.jsx';
 import { useData } from '../data.jsx';
 import { Sheet, Segmented, Toggle, Confirm, CatIcon } from './ui.jsx';
@@ -7,6 +7,7 @@ import { FREQUENCIES, HOME_EXPENSE } from '../lib/categories.js';
 import { parseAmount, findDuplicates } from '../lib/finance.js';
 import { parseDate, todayStr, formatShortDate } from '../lib/dates.js';
 import { saveMovement, deleteMovement } from '../lib/actions.js';
+import { readReceiptImage, parseReceiptText, categoryForReceipt } from '../lib/receipt.js';
 
 const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); return todayStr(d); };
 
@@ -33,6 +34,11 @@ export function MovementSheet({ open, initial, defaults, onClose, notify }) {
   const [busy, setBusy] = useState(false);
   const [shared, setShared] = useState(false);
   const [homeCat, setHomeCat] = useState('leisure');
+  // V3 · lectura de tickets
+  const [ocr, setOcr] = useState({ busy: false, pct: 0, msg: null });
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [pasteText, setPasteText] = useState('');
+  const fileRef = useRef(null);
 
   const firstCat = (ty) => (ty === 'income' ? incomeCats[0]?.key : ty === 'saving' ? goals[0]?.id : expenseCats.find((c) => !c.system)?.key || expenseCats[0]?.key);
 
@@ -54,6 +60,7 @@ export function MovementSheet({ open, initial, defaults, onClose, notify }) {
     setFrequency('monthly');
     setShared(!!src.shared?.category);
     setHomeCat(src.shared?.category || 'leisure');
+    setOcr({ busy: false, pct: 0, msg: null }); setPasteOpen(false); setPasteText('');
     setError(null); setDups(null); setConfirmDelete(false); setBusy(false);
   }, [open, initial]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -109,6 +116,34 @@ export function MovementSheet({ open, initial, defaults, onClose, notify }) {
     }
   }
 
+  // Rellena el formulario con lo leído del ticket; siempre se revisa antes de guardar.
+  function applyReceipt(text) {
+    const r = parseReceiptText(text);
+    if (!r.total) { setOcr({ busy: false, pct: 0, msg: 'ocr.nothing' }); return; }
+    setType('expense'); setDups(null); setError(null);
+    setAmountText(String(r.total.toFixed(2)).replace('.', locale.startsWith('en') ? '.' : ','));
+    if (r.merchant && !concept.trim()) setConcept(r.merchant);
+    if (r.date) { setDate(r.date); setOtherDate(r.date !== todayStr() && r.date !== yesterday()); }
+    const cat = categoryForReceipt(r.kind, kind, expenseCats);
+    if (cat) setCategory(cat);
+    setOcr({ busy: false, pct: 0, msg: 'ocr.filled' });
+    setPasteOpen(false);
+  }
+  async function onPhoto(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setPasteOpen(false);
+    setOcr({ busy: true, pct: 0, msg: null });
+    try {
+      const text = await readReceiptImage(file, (pct) => setOcr({ busy: true, pct, msg: null }));
+      applyReceipt(text);
+    } catch (err) {
+      console.error(err);
+      setOcr({ busy: false, pct: 0, msg: 'ocr.error' });
+    }
+  }
+
   async function doDelete() {
     setBusy(true);
     try { await deleteMovement({ space, user, tx: initial }); notify('common.deleted'); onClose(); }
@@ -146,6 +181,34 @@ export function MovementSheet({ open, initial, defaults, onClose, notify }) {
         {!editing && (
           <Segmented className="mb-3" value={type} onChange={changeType}
             options={['expense', 'income', 'saving'].map((v) => ({ value: v, label: t(`type.${v}`) }))} />
+        )}
+
+        {!editing && !linked && type === 'expense' && (
+          <div className="mb-3">
+            <div className="flex gap-2">
+              <button type="button" className="chip flex-1 justify-center px-2 py-2 whitespace-nowrap" disabled={ocr.busy} onClick={() => fileRef.current?.click()}><LuCamera size={15} /> {t('ocr.photo')}</button>
+              <button type="button" className={`chip flex-1 justify-center px-2 py-2 whitespace-nowrap ${pasteOpen ? 'chip-on' : ''}`} disabled={ocr.busy} onClick={() => setPasteOpen(!pasteOpen)}><LuClipboardPaste size={15} /> {t('ocr.paste')}</button>
+              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPhoto} />
+            </div>
+            {ocr.busy && (
+              <div className="mt-2 rounded-2xl bg-[var(--accent-soft)] px-3 py-2.5 text-xs text-[var(--accent-dark)]">
+                <p className="flex items-center gap-2"><LuScanLine size={15} className="animate-pulse" /> {ocr.pct > 0 ? t('ocr.reading', { pct: ocr.pct }) : t('ocr.loading')}</p>
+                <div className="mt-1.5 h-1.5 rounded-full bg-white/70"><div className="h-1.5 rounded-full bg-[var(--accent)] transition-all" style={{ width: `${Math.max(4, ocr.pct)}%` }} /></div>
+              </div>
+            )}
+            {ocr.msg && !ocr.busy && (
+              <p className={`mt-2 rounded-2xl px-3 py-2.5 text-xs leading-relaxed ${ocr.msg === 'ocr.filled' ? 'bg-[var(--accent-soft)] text-[var(--accent-dark)]' : 'bg-warn-soft text-warn-ink'}`}>{t(ocr.msg)}</p>
+            )}
+            {pasteOpen && (
+              <div className="card mt-2 p-3">
+                <p className="text-sm font-semibold">{t('ocr.paste_title')}</p>
+                <p className="mt-1 mb-2 text-xs leading-relaxed text-muted">{t('ocr.paste_hint')}</p>
+                <textarea rows={5} className="field resize-none text-xs" placeholder={t('ocr.paste_placeholder')} value={pasteText} onChange={(e) => setPasteText(e.target.value)} />
+                <button type="button" className="btn btn-primary mt-2 w-full py-2" disabled={!pasteText.trim()} onClick={() => applyReceipt(pasteText)}>{t('ocr.paste_fill')}</button>
+              </div>
+            )}
+            {!ocr.busy && !ocr.msg && !pasteOpen && <p className="mt-1.5 text-[11px] leading-snug text-muted">{t('ocr.private')}</p>}
+          </div>
         )}
 
         {template && (
